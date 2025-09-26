@@ -1,0 +1,522 @@
+:root {
+  --primary-bg: #2c3e50;
+  --secondary-bg: #34495e;
+  --border-color: #7f8c8d;
+  --text-color: #ecf0f1;
+  --player-hp-color: #2ecc71;
+  --monster-hp-color: #e74c3c;
+  --xp-bar-color: #3498db;
+  --button-bg: #3498db;
+  --button-hover-bg: #2980b9;
+  --button-disabled-bg: #95a5a6;
+  --skill-learned-bg: #27ae60;
+  --skill-learnable-bg: #f1c40f;
+  --skill-locked-bg: #7f8c8d;
+  --skill-maxed-bg: #e67e22;
+
+  --rarity-common: #ecf0f1;
+  --rarity-uncommon: #2ecc71;
+  --rarity-rare: #3498db;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: var(--primary-bg);
+  color: var(--text-color);
+  user-select: none;
+}
+
+#root {
+  width: 100%;
+  max-width: 400px;
+  height: 100%;
+  max-height: 700px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: var(--secondary-bg);
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.screen-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.town-screen {
+    justify-content: space-around;
+}
+
+.town-screen .player-card {
+    margin: 1rem 0;
+}
+
+/* Difficulty & Class Selection */
+.difficulty-selection,
+.class-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1.5rem;
+}
+.difficulty-card,
+.class-card {
+    background-color: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+    color: var(--text-color);
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+}
+.difficulty-card:hover,
+.class-card:hover {
+    background-color: var(--secondary-bg);
+    transform: translateY(-5px);
+}
+.difficulty-card h2,
+.class-card h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--button-bg);
+}
+.difficulty-card p,
+.class-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+
+h1 {
+  margin-bottom: 1rem;
+  font-size: 2.5rem;
+}
+
+p {
+  line-height: 1.5;
+}
+
+#game-world {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.character-card {
+    background-color: rgba(0,0,0,0.2);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.character-card h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    white-space: pre-wrap;
+}
+
+.player-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.player-header h2 {
+    margin: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.player-class {
+    color: #bdc3c7;
+    font-size: 1rem;
+}
+
+.dungeon-progress {
+    text-align: center;
+    font-weight: bold;
+    color: var(--xp-bar-color);
+    margin: 0 0 0.5rem 0 !important;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hp-bar-container, .xp-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: #2c3e50;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin-top: 0.5rem;
+}
+
+.hp-bar, .xp-bar {
+    height: 100%;
+    transition: width 0.3s ease-in-out;
+}
+
+.player-card .hp-bar {
+    background-color: var(--player-hp-color);
+}
+
+.monster-card .hp-bar {
+    background-color: var(--monster-hp-color);
+}
+
+.xp-bar {
+    background-color: var(--xp-bar-color);
+}
+
+.character-card p {
+    margin: 0.5rem 0 0 0;
+    text-align: right;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.gold-sp-display {
+    text-align: right;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+.gold-sp-display p {
+    margin: 0;
+}
+
+.player-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    justify-content: space-around;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 1rem;
+    font-weight: bold;
+}
+.player-equipment {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.player-buffs {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    justify-content: center;
+}
+.buff-icon {
+    background-color: var(--button-bg);
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+#message-log {
+    width: 100%;
+    height: 150px;
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    margin: 1rem 0;
+}
+
+#message-log p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #4a637e;
+    padding-bottom: 0.25rem;
+}
+#message-log p:first-child {
+    border-bottom: none;
+}
+
+#action-buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+}
+.town-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.town-actions .button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+.button {
+  padding: 0.8rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+  background-color: var(--button-bg);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+    background-color: var(--button-disabled-bg);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.button:disabled:hover {
+    background-color: var(--button-disabled-bg);
+}
+
+/* Shop & Training Styles */
+.shop-container {
+    justify-content: flex-start;
+    padding-top: 2rem;
+}
+.shop-items {
+    width: 100%;
+    margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+.shop-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0,0,0,0.2);
+    padding: 1rem;
+    border-radius: 8px;
+}
+.shop-item span {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+.shop-item .button {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    min-width: 100px;
+}
+#back-to-town, #back-to-town-skill, #back-to-town-equip {
+    margin-top: auto;
+    width: 100%;
+}
+
+/* Skill Tree Styles */
+.skill-tree-container {
+    justify-content: flex-start;
+}
+.skill-tree-header {
+    margin-bottom: 1rem;
+}
+.skill-tree {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    padding: 0.5rem;
+    flex-grow: 1;
+    position: relative;
+}
+.skill-tier h3 {
+    margin: 0 0 0.5rem;
+    text-align: left;
+    font-size: 1rem;
+    color: var(--xp-bar-color);
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.skill-tier-nodes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+.skill-tree-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.skill-node {
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 1;
+    position: relative;
+}
+.skill-node p {
+    margin: 0;
+}
+.skill-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+.skill-level {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+.skill-type {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.skill-node.locked {
+    background-color: var(--skill-locked-bg);
+    border-color: #636e72;
+    color: #b2bec3;
+    cursor: not-allowed;
+}
+.skill-node.learnable {
+    background-color: var(--skill-learnable-bg);
+    color: #2d3436;
+    border-color: #fdcb6e;
+    cursor: pointer;
+}
+.skill-node.learnable:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.skill-node.learned {
+    background-color: var(--skill-learned-bg);
+    color: white;
+    border-color: #00b894;
+    cursor: pointer;
+}
+.skill-node.maxed {
+    background-color: var(--skill-maxed-bg);
+    color: white;
+    border-color: #d35400;
+    cursor: default;
+}
+
+/* Equipment Screen Styles */
+.equipment-screen {
+    justify-content: flex-start;
+}
+.equipment-slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    margin: 1rem 0;
+}
+.slot-container h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+.inventory-grid {
+    width: 100%;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+}
+.item-card {
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.item-card:hover {
+    background-color: var(--primary-bg);
+}
+.item-card.empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--border-color);
+    font-style: italic;
+    cursor: default;
+}
+.item-card.empty:hover {
+    background-color: var(--secondary-bg);
+}
+.item-card .item-name {
+    font-weight: bold;
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+}
+.item-card .item-stats {
+    font-size: 0.8rem;
+    color: #bdc3c7;
+    margin: 0;
+}
+
+/* Rarity Colors */
+.rarity-common { color: var(--rarity-common); }
+.rarity-uncommon { color: var(--rarity-uncommon); }
+.rarity-rare { color: var(--rarity-rare); }
+
+#message-log .rarity-uncommon, #message-log .rarity-rare {
+    font-weight: bold;
+}
