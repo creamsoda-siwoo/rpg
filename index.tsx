@@ -9,11 +9,22 @@ if (!root) {
 }
 
 // --- Type Definitions ---
+type StatusEffectType = 'poison' | 'burn' | 'stun' | 'weaken' | 'vulnerable';
+
+interface StatusEffect {
+    type: StatusEffectType;
+    duration: number;
+    potency: number; // For poison/burn damage, or stat reduction %
+    sourceId?: string; // e.g., skill ID
+}
+
+
 interface SkillEffect {
     stat?: keyof PlayerStats | 'atkPercent' | 'defPercent' | 'hpPercent';
     value?: number;
     damageMultiplier?: number;
     buff?: { stat: keyof PlayerStats, value: number, duration: number, isPercent?: boolean };
+    statusEffect?: { type: StatusEffectType, chance: number, duration: number, potency: number };
     message: string;
 }
 
@@ -36,6 +47,7 @@ interface Character {
   attackPower: number;
   defense: number;
   emoji?: string;
+  statusEffects: StatusEffect[];
 }
 
 interface PlayerStats {
@@ -58,7 +70,7 @@ interface EquipmentItem {
     cost: number;
 }
 
-interface PlayerCharacter extends Character, PlayerStats {
+interface PlayerCharacter extends Character {
     className: keyof typeof CLASSES;
     weaponName: string;
     level: number;
@@ -76,6 +88,12 @@ interface PlayerCharacter extends Character, PlayerStats {
         armor: EquipmentItem | null;
     };
     inventory: EquipmentItem[];
+    // These are placeholders, recalculated by recalculatePlayerStats
+    maxHp: number;
+    attackPower: number;
+    defense: number;
+    critChance: number;
+    evadeChance: number;
 }
 
 enum GameScreen {
@@ -96,6 +114,14 @@ const POTION_HEAL_PERCENT = 0.6;
 const POTION_COST = 20;
 const DEFEAT_GOLD_PENALTY = 0.1;
 
+const STATUS_EFFECT_DEFINITIONS: { [key in StatusEffectType]: { name: string, icon: string } } = {
+    poison: { name: '독', icon: '☠️' },
+    burn: { name: '화상', icon: '🔥' },
+    stun: { name: '기절', icon: '💫' },
+    weaken: { name: '약화', icon: '↓' },
+    vulnerable: { name: '취약', icon: '🛡️💥' },
+};
+
 const CLASSES = {
     '전사': { emoji: '🛡️', baseHp: 150, baseAtk: 12, baseDef: 3, weapon: '검', crit: 0.1, evade: 0.05 },
     '마법사': { emoji: '🔥', baseHp: 110, baseAtk: 16, baseDef: 0, weapon: '지팡이', crit: 0.1, evade: 0.05 },
@@ -115,8 +141,8 @@ const SKILLS: { [key: string]: Skill[] } = {
           description: level => `최대 체력이 레벨당 25씩 증가합니다. (현재: +${level*25})`,
           effect: level => ({ stat: 'maxHp', value: 25 * level, message: `견고함 Lv.${level} 효과로 최대 체력이 증가했다.` }) },
         { id: 'w_power_strike', name: '강타', maxLevel: 5, type: 'ACTIVE', requiredLevel: 3, dependencies: [], cooldown: 3,
-          description: level => `공격력의 ${170 + 10 * level}% 피해를 입힙니다.`,
-          effect: level => ({ damageMultiplier: 1.7 + 0.1 * level, message: '강타로 강력한 일격을 날렸다!' }) },
+          description: level => `공격력의 ${170 + 10 * level}% 피해를 입히고 ${50 + 10 * level}% 확률로 2턴간 '취약' 상태로 만듭니다.`,
+          effect: level => ({ damageMultiplier: 1.7 + 0.1 * level, statusEffect: { type: 'vulnerable', chance: 0.5 + 0.1 * level, duration: 2, potency: 0.2 }, message: '강타로 강력한 일격을 날려 적을 취약 상태로 만들었다!' }) },
         { id: 'w_armor_up', name: '갑옷 숙련', maxLevel: 5, type: 'PASSIVE', requiredLevel: 4, dependencies: ['w_toughness'],
           description: level => `방어력이 레벨당 2씩 증가합니다. (현재: +${level*2})`,
           effect: level => ({ stat: 'defense', value: 2 * level, message: '방어력이 증가했다.' }) },
@@ -129,26 +155,26 @@ const SKILLS: { [key: string]: Skill[] } = {
           description: level => `공격력이 레벨당 8%씩 증가합니다. (현재: +${level*8}%)`,
           effect: level => ({ stat: 'atkPercent', value: 0.08 * level, message: '공격력이 증가했다.' }) },
         { id: 'm_fireball', name: '화염구', maxLevel: 5, type: 'ACTIVE', requiredLevel: 3, dependencies: [], cooldown: 3,
-          description: level => `공격력의 ${180 + 20 * level}% 피해를 입힙니다.`,
-          effect: level => ({ damageMultiplier: 1.8 + 0.2 * level, message: '거대한 화염구가 몬스터를 덮쳤다!' }) },
+          description: level => `공격력의 ${160 + 15 * level}% 피해를 입히고, 3턴간 턴마다 ${5 + level * 2}의 화상 피해를 줍니다.`,
+          effect: level => ({ damageMultiplier: 1.6 + 0.15 * level, statusEffect: { type: 'burn', chance: 1.0, duration: 3, potency: 5 + level * 2 }, message: '거대한 화염구가 몬스터를 불태웠다!' }) },
         { id: 'm_focus', name: '정신 집중', maxLevel: 5, type: 'PASSIVE', requiredLevel: 4, dependencies: ['m_knowledge'],
           description: level => `치명타 확률이 레벨당 3%씩 증가합니다. (현재: +${level*3}%)`,
           effect: level => ({ stat: 'critChance', value: 0.03 * level, message: '치명타 확률이 증가했다.' }) },
         { id: 'm_ice_lance', name: '얼음 창', maxLevel: 3, type: 'ACTIVE', requiredLevel: 5, dependencies: ['m_fireball'], cooldown: 5,
-          description: level => `공격력의 ${220 + 30 * level}% 피해를 입힙니다.`,
-          effect: level => ({ damageMultiplier: 2.2 + 0.3 * level, message: '날카로운 얼음 창이 몬스터를 꿰뚫었다!' }) },
+          description: level => `공격력의 ${150 + 20 * level}% 피해를 입히고, ${50 + 10 * level}% 확률로 1턴간 '기절'시킵니다.`,
+          effect: level => ({ damageMultiplier: 1.5 + 0.2 * level, statusEffect: { type: 'stun', chance: 0.5 + 0.1 * level, duration: 1, potency: 0 }, message: '날카로운 얼음 창이 몬스터를 얼어붙게 만들었다!' }) },
     ],
     '도적': [
         { id: 'r_agility', name: '민첩함', maxLevel: 5, type: 'PASSIVE', requiredLevel: 2, dependencies: [],
           description: level => `회피율이 레벨당 3%씩 증가합니다. (현재: +${level*3}%)`,
           effect: level => ({ stat: 'evadeChance', value: 0.03 * level, message: '회피율이 증가했다.' }) },
-        { id: 'r_shadow_strike', name: '그림자 습격', maxLevel: 5, type: 'ACTIVE', requiredLevel: 3, dependencies: [], cooldown: 4,
-          description: level => `치명타 확률이 30% 높은 ${140 + 10 * level}% 피해를 입힙니다.`,
-          effect: level => ({ damageMultiplier: 1.4 + 0.1 * level, message: '그림자 속에서 적의 급소를 노렸다!' }) },
-        { id: 'r_lethality', name: '치명적인 독', maxLevel: 5, type: 'PASSIVE', requiredLevel: 4, dependencies: ['r_agility'],
-          description: level => `치명타 확률이 레벨당 2%씩 추가로 증가합니다. (현재: +${level*2}%)`,
-          effect: level => ({ stat: 'critChance', value: 0.02 * level, message: '치명타 확률이 증가했다.' }) },
-        { id: 'r_vanish', name: '연막', maxLevel: 3, type: 'ACTIVE', requiredLevel: 5, dependencies: ['r_shadow_strike'], cooldown: 5,
+        { id: 'r_toxic_strike', name: '맹독 공격', maxLevel: 5, type: 'ACTIVE', requiredLevel: 3, dependencies: [], cooldown: 4,
+          description: level => `공격력의 ${120 + 10 * level}% 피해를 입히고, 3턴간 턴마다 ${4 + level}의 독 피해를 줍니다.`,
+          effect: level => ({ damageMultiplier: 1.2 + 0.1 * level, statusEffect: { type: 'poison', chance: 1.0, duration: 3, potency: 4 + level }, message: '독이 묻은 칼로 공격했다!' }) },
+        { id: 'r_lethality', name: '독 전문가', maxLevel: 5, type: 'PASSIVE', requiredLevel: 4, dependencies: ['r_toxic_strike'],
+          description: level => `모든 독 피해량이 ${level*2}만큼 증가합니다.`,
+          effect: level => ({ message: '독이 더욱 치명적으로 변했다.' }) },
+        { id: 'r_vanish', name: '연막', maxLevel: 3, type: 'ACTIVE', requiredLevel: 5, dependencies: ['r_agility'], cooldown: 5,
           description: level => `2턴 동안 회피율이 ${30 + 10*level}% 증가합니다.`,
           effect: level => ({ buff: { stat: 'evadeChance', value: 0.3 + 0.1*level, duration: 2 }, message: '연막을 터뜨려 모습을 감췄다!' }) },
     ],
@@ -190,23 +216,24 @@ let dungeonFloor: number;
 
 const monsterList = [
     { name: '슬라임', emoji: '💧', baseHp: 20, baseAttack: 5, xp: 25, gold: 5, lootTable: [102, 105] },
-    { name: '고블린', emoji: '👺', baseHp: 30, baseAttack: 7, xp: 40, gold: 10, lootTable: [101, 103, 105] },
+    { name: '고블린', emoji: '👺', baseHp: 30, baseAttack: 7, xp: 40, gold: 10, lootTable: [101, 103, 105], onHitEffect: {type: 'weaken', chance: 0.2, duration: 2, potency: 0.1} },
     { name: '오크', emoji: '👹', baseHp: 45, baseAttack: 11, xp: 60, gold: 15, lootTable: [101, 103, 201] },
+    { name: '독거미', emoji: '🕷️', baseHp: 55, baseAttack: 12, xp: 75, gold: 20, lootTable: [205], onHitEffect: {type: 'poison', chance: 0.4, duration: 3, potency: 4} },
     { name: '스켈레톤', emoji: '💀', baseHp: 65, baseAttack: 14, xp: 85, gold: 25, lootTable: [201, 203] },
 ];
 
 const bossList = [
-    { name: '동굴 트롤', emoji: '🗿', baseHp: 100, baseAttack: 18, xp: 200, gold: 100, lootTable: [201, 203, 205] },
-    { name: '거대 골렘', emoji: '🤖', baseHp: 150, baseAttack: 23, xp: 300, gold: 150, lootTable: [202, 204, 303] },
-    { name: '흑기사', emoji: '♞', baseHp: 200, baseAttack: 28, xp: 450, gold: 220, lootTable: [301, 303] },
-    { name: '드래곤', emoji: '🐲', baseHp: 270, baseAttack: 34, xp: 600, gold: 300, lootTable: [301, 302] },
+    { name: '동굴 트롤', emoji: '🗿', baseHp: 100, baseAttack: 18, xp: 200, gold: 100, lootTable: [201, 203, 205], onHitEffect: {type: 'stun', chance: 0.2, duration: 1, potency: 0} },
+    { name: '거대 골렘', emoji: '🤖', baseHp: 150, baseAttack: 23, xp: 300, gold: 150, lootTable: [202, 204, 303], onHitEffect: {type: 'vulnerable', chance: 0.5, duration: 2, potency: 0.25} },
+    { name: '흑기사', emoji: '♞', baseHp: 200, baseAttack: 28, xp: 450, gold: 220, lootTable: [301, 303], onHitEffect: {type: 'weaken', chance: 0.4, duration: 3, potency: 0.2} },
+    { name: '드래곤', emoji: '🐲', baseHp: 270, baseAttack: 34, xp: 600, gold: 300, lootTable: [301, 302], onHitEffect: {type: 'burn', chance: 0.7, duration: 3, potency: 15} },
 ];
 
 function createStartScreen() {
   currentScreen = GameScreen.START;
   root.innerHTML = `
     <div class="screen-container">
-      <h1>간단 RPG: 스킬 트리</h1>
+      <h1>간단 RPG: 상태 이상</h1>
       <p>직업을 선택하고, 스킬을 배워 던전을 정복하세요!</p>
       <button id="start-button" class="button">게임 시작</button>
     </div>
@@ -255,15 +282,15 @@ function createClassSelectionScreen() {
             <div class="class-selection">
                 <button class="class-card" data-class="전사">
                     <h2>전사 🛡️</h2>
-                    <p>높은 체력과 방어력. 안정적인 전투를 이끌어갑니다.</p>
+                    <p>높은 체력과 방어력. 적을 약화시키고 버티는 전투를 이끌어갑니다.</p>
                 </button>
                 <button class="class-card" data-class="마법사">
                     <h2>마법사 🔥</h2>
-                    <p>강력한 공격 마법을 사용하지만, 체력이 약합니다.</p>
+                    <p>강력한 원소 마법으로 적을 불태우거나 얼립니다.</p>
                 </button>
                 <button class="class-card" data-class="도적">
                     <h2>도적 💨</h2>
-                    <p>높은 치명타와 회피율로 변수를 창출합니다.</p>
+                    <p>맹독과 높은 회피율로 적을 서서히 무너뜨립니다.</p>
                 </button>
             </div>
         </div>
@@ -302,6 +329,7 @@ function initializeGame(chosenClass: keyof typeof CLASSES, playerName: string) {
     learnedSkills: {},
     activeSkillCooldowns: {},
     activeBuffs: [],
+    statusEffects: [],
     equipment: { weapon: null, armor: null },
     inventory: [],
     baseStats: {
@@ -322,7 +350,23 @@ function initializeGame(chosenClass: keyof typeof CLASSES, playerName: string) {
 
 function recalculatePlayerStats() {
     const p = player;
-    Object.assign(p, p.baseStats);
+    let baseAtk = p.baseStats.attackPower;
+    let baseDef = p.baseStats.defense;
+    
+    // Status Effects
+    p.statusEffects.forEach(se => {
+        if (se.type === 'weaken') baseAtk *= (1 - se.potency);
+        if (se.type === 'vulnerable') baseDef *= (1 - se.potency);
+    });
+
+    // Create a temporary stats object to apply bonuses
+    const tempStats = {
+        maxHp: p.baseStats.maxHp,
+        attackPower: baseAtk,
+        defense: baseDef,
+        critChance: p.baseStats.critChance,
+        evadeChance: p.baseStats.evadeChance,
+    };
     
     let atkPercentBonus = 0;
     let defPercentBonus = 0;
@@ -337,7 +381,7 @@ function recalculatePlayerStats() {
             case 'atkPercent': atkPercentBonus += effect.value ?? 0; break;
             case 'defPercent': defPercentBonus += effect.value ?? 0; break;
             case 'hpPercent': hpPercentBonus += effect.value ?? 0; break;
-            default: if (effect.stat && effect.value) p[effect.stat as keyof PlayerStats] += effect.value;
+            default: if (effect.stat && effect.value) tempStats[effect.stat as keyof PlayerStats] += effect.value;
         }
     });
 
@@ -345,12 +389,19 @@ function recalculatePlayerStats() {
     Object.values(p.equipment).forEach(item => {
         if (item) {
             Object.entries(item.stats).forEach(([stat, value]) => {
-                if (stat in p) {
-                    (p[stat as keyof PlayerStats] as number) += value;
+                if (stat in tempStats) {
+                    (tempStats[stat as keyof PlayerStats] as number) += value;
                 }
             });
         }
     });
+
+    // Apply main stats from temp object to player
+    p.maxHp = tempStats.maxHp;
+    p.attackPower = tempStats.attackPower;
+    p.defense = tempStats.defense;
+    p.critChance = tempStats.critChance;
+    p.evadeChance = tempStats.evadeChance;
 
     // Percent Bonuses
     p.maxHp = Math.floor(p.maxHp * (1 + hpPercentBonus));
@@ -367,7 +418,7 @@ function recalculatePlayerStats() {
             if (b.stat === 'attackPower') buffAtkPercent += b.value;
             if (b.stat === 'defense') buffDefPercent += b.value;
         } else {
-             p[b.stat] += b.value;
+             p[b.stat as keyof PlayerStats] += b.value;
         }
     });
     
@@ -434,11 +485,17 @@ function spawnMonster() {
         hp: Math.floor(monsterData.baseHp * levelModifier * difficulty.monsterHpMod),
         attackPower: Math.floor(monsterData.baseAttack * levelModifier * difficulty.monsterAtkMod),
         defense: 0,
+        statusEffects: [],
     };
 }
 
-function createCharacterCard(character: PlayerCharacter | Character, isPlayer: boolean) {
+function createCharacterCard(character: Character, isPlayer: boolean) {
     const hpPercentage = (character.hp / character.maxHp) * 100;
+
+    const statusEffectsHtml = character.statusEffects.map(se => {
+        const def = STATUS_EFFECT_DEFINITIONS[se.type];
+        return `<span class="status-effect-icon" title="${def.name}: ${se.duration}턴 남음">${def.icon}(${se.duration})</span>`;
+    }).join('');
 
     if (isPlayer && 'className' in character) {
         const p = character as PlayerCharacter;
@@ -473,6 +530,7 @@ function createCharacterCard(character: PlayerCharacter | Character, isPlayer: b
                     <div class="hp-bar" style="width: ${hpPercentage}%;"></div>
                 </div>
                 <p>HP: ${p.hp} / ${p.maxHp}</p>
+                <div class="status-effects">${statusEffectsHtml}</div>
                 <div class="xp-bar-container">
                     <div class="xp-bar" style="width: ${xpPercentage}%;"></div>
                 </div>
@@ -495,6 +553,7 @@ function createCharacterCard(character: PlayerCharacter | Character, isPlayer: b
                 <div class="hp-bar" style="width: ${hpPercentage}%;"></div>
             </div>
             <p>HP: ${character.hp} / ${character.maxHp}</p>
+            <div class="status-effects">${statusEffectsHtml}</div>
         </div>
     `;
 }
@@ -539,12 +598,12 @@ function renderDungeonScreen() {
 function handleDungeonAction(event: MouseEvent) {
     const target = event.target as HTMLElement;
     const button = target.closest('button');
-    if (!button) return;
+    if (!button || button.disabled) return;
 
     const action = button.dataset.action;
     switch (action) {
         case 'attack':
-            handleAttack();
+            handlePlayerTurn(handleAttack);
             break;
         case 'potion':
             handleUsePotion();
@@ -554,17 +613,63 @@ function handleDungeonAction(event: MouseEvent) {
             break;
         case 'skill':
             const skillId = button.dataset.skillId;
-            if (skillId) handleUseSkill(skillId);
+            if (skillId) handlePlayerTurn(() => handleUseSkill(skillId));
             break;
+    }
+}
+
+function handlePlayerTurn(action: () => void) {
+    // Process player's start-of-turn effects
+    const isStunned = processStatusEffects(player);
+    if (isStunned) {
+        addMessage(`💫 ${player.name}은(는) 기절해서 움직일 수 없다!`);
+        handleMonsterTurn();
+        return;
+    }
+
+    // Decrement cooldowns and buff durations
+    Object.keys(player.activeSkillCooldowns).forEach(id => {
+        if (player.activeSkillCooldowns[id] > 0) player.activeSkillCooldowns[id]--;
+    });
+    player.activeBuffs = player.activeBuffs.map(buff => ({ ...buff, duration: buff.duration - 1 })).filter(buff => buff.duration > 0);
+    recalculatePlayerStats();
+
+    // Player action
+    action();
+
+    // Check monster status
+    if (monster.hp <= 0) {
+        monsterDefeated();
+    } else {
+        // Start monster turn
+        handleMonsterTurn();
+    }
+}
+
+function handleMonsterTurn() {
+    // Process monster's start-of-turn effects
+    const isStunned = processStatusEffects(monster);
+    recalculatePlayerStats(); // Recalculate in case monster stats changed (e.g. vulnerable wore off)
+    if (isStunned) {
+        addMessage(`💫 ${monster.name}은(는) 기절해서 움직일 수 없다!`);
+        renderDungeonScreen();
+        return;
+    }
+
+    // Monster action
+    monsterAttack();
+    
+    // Check player status
+    if (player.hp <= 0) {
+        handlePlayerDefeat();
+    } else {
+        renderDungeonScreen();
     }
 }
 
 
 function handleEscape() {
     if (confirm("정말로 던전에서 탈출하시겠습니까? 이번 탐험에서 얻은 보상을 모두 잃게 됩니다.")) {
-        player.hp = player.maxHp;
-        player.activeBuffs = [];
-        player.activeBuffs.forEach(buff => buff.duration = 0);
         handlePlayerDefeat(true); // isEscaping = true
     }
 }
@@ -574,98 +679,84 @@ function addMessage(message: string) {
     if (messageLog.length > 5) messageLog.pop();
 }
 
-function executePlayerTurnAction(action: () => void, consumesTurn: boolean = true) {
-    if (currentScreen !== GameScreen.DUNGEON) return;
-
-    if (consumesTurn) {
-        Object.keys(player.activeSkillCooldowns).forEach(id => {
-            if (player.activeSkillCooldowns[id] > 0) player.activeSkillCooldowns[id]--;
-        });
-        player.activeBuffs = player.activeBuffs.map(buff => ({ ...buff, duration: buff.duration - 1 })).filter(buff => buff.duration > 0);
-        recalculatePlayerStats();
-    }
-
-    action();
-
-    if (monster.hp <= 0) {
-        monsterDefeated();
-    } else if (player.hp > 0 && consumesTurn) {
-        monsterAttack();
-    } else {
-        renderDungeonScreen();
-    }
-}
-
 function handleAttack() {
-    executePlayerTurnAction(() => {
-        let playerDamage = Math.floor(player.attackPower + (Math.random() * 5 - 2));
-        if (Math.random() < player.critChance) {
-            playerDamage = Math.floor(playerDamage * CRIT_MULTIPLIER);
-            addMessage(`💥 치명타! ${player.name}이(가) ${monster.name}에게 ${playerDamage}의 데미지를 입혔다!`);
-        } else {
-            addMessage(`⚔️ ${player.name}이(가) ${monster.name}에게 ${playerDamage}의 데미지를 입혔다.`);
-        }
-        monster.hp = Math.max(0, monster.hp - playerDamage);
-    });
+    let playerDamage = Math.floor(player.attackPower + (Math.random() * 5 - 2));
+    if (Math.random() < player.critChance) {
+        playerDamage = Math.floor(playerDamage * CRIT_MULTIPLIER);
+        addMessage(`💥 치명타! ${player.name}이(가) ${monster.name}에게 ${playerDamage}의 데미지를 입혔다!`);
+    } else {
+        addMessage(`⚔️ ${player.name}이(가) ${monster.name}에게 ${playerDamage}의 데미지를 입혔다.`);
+    }
+    monster.hp = Math.max(0, monster.hp - playerDamage);
 }
 
 function handleUseSkill(skillId: string) {
     const skill = SKILLS[player.className].find(s => s.id === skillId);
     if (!skill || (player.activeSkillCooldowns[skillId] || 0) > 0) return;
     
-    executePlayerTurnAction(() => {
-        const skillLevel = player.learnedSkills[skillId];
-        const effect = skill.effect(skillLevel);
-        
-        addMessage(effect.message);
-        player.activeSkillCooldowns[skill.id] = skill.cooldown ?? 0;
+    const skillLevel = player.learnedSkills[skillId];
+    const effect = skill.effect(skillLevel);
+    
+    addMessage(effect.message);
+    player.activeSkillCooldowns[skill.id] = skill.cooldown ?? 0;
 
-        if (effect.damageMultiplier) {
-            let damage = player.attackPower * effect.damageMultiplier;
-            let critChance = player.critChance;
-            if (skill.id === 'r_shadow_strike') critChance += 0.3;
-            if (Math.random() < critChance) {
-                damage = Math.floor(damage * CRIT_MULTIPLIER);
-                addMessage(`💥 치명타! ${damage}의 피해!`);
-            }
-            monster.hp = Math.max(0, monster.hp - Math.floor(damage));
+    if (effect.damageMultiplier) {
+        let damage = player.attackPower * effect.damageMultiplier;
+        let critChance = player.critChance;
+        if (skill.id === 'r_shadow_strike') critChance += 0.3; // This skill was replaced, but keeping logic just in case
+        if (Math.random() < critChance) {
+            damage = Math.floor(damage * CRIT_MULTIPLIER);
+            addMessage(`💥 치명타! ${damage}의 피해!`);
         }
+        monster.hp = Math.max(0, monster.hp - Math.floor(damage));
+    }
 
-        if (effect.buff) {
-            player.activeBuffs.push({ skillId: skill.id, name: skill.name, duration: effect.buff.duration + 1, effect: effect.buff });
-            recalculatePlayerStats();
-        }
-    });
+    if (effect.buff) {
+        player.activeBuffs.push({ skillId: skill.id, name: skill.name, duration: effect.buff.duration + 1, effect: effect.buff });
+        recalculatePlayerStats();
+    }
+    
+    if (effect.statusEffect && Math.random() < effect.statusEffect.chance) {
+        applyStatusEffect(monster, { ...effect.statusEffect });
+    }
 }
 
 function handleUsePotion() {
     if (player.potions <= 0) return;
-    executePlayerTurnAction(() => {
-        player.potions--;
-        const healAmount = Math.floor(player.maxHp * POTION_HEAL_PERCENT);
-        player.hp = Math.min(player.maxHp, player.hp + healAmount);
-        addMessage(`🧪 물약을 사용해 HP를 ${healAmount}만큼 회복했다!`);
-    }, false); // Potion does not consume a turn
+    player.potions--;
+    const healAmount = Math.floor(player.maxHp * POTION_HEAL_PERCENT);
+    player.hp = Math.min(player.maxHp, player.hp + healAmount);
+    addMessage(`🧪 물약을 사용해 HP를 ${healAmount}만큼 회복했다!`);
+    renderDungeonScreen(); // Rerender immediately, does not start monster turn
 }
 
 function monsterAttack() {
     if (Math.random() < player.evadeChance) {
         addMessage(`🍃 ${player.name}이(가) 공격을 회피했다!`);
-    } else {
-        let monsterDamage = Math.floor(monster.attackPower + (Math.random() * 4 - 2));
-        if (Math.random() < 0.1) { // Monster Crit Chance
-            monsterDamage = Math.floor(monsterDamage * CRIT_MULTIPLIER);
-            addMessage(`💢 치명타! ${monster.name}이(가) ${monsterDamage}의 데미지를 입혔다!`);
-        }
-        const finalDamage = Math.max(1, monsterDamage - player.defense);
-        addMessage(`🛡️ ${monster.name}의 공격! ${player.name}은(는) ${finalDamage}의 피해를 입었다.`);
-        player.hp = Math.max(0, player.hp - finalDamage);
+        return;
     }
+    
+    let monsterDamage = Math.floor(monster.attackPower + (Math.random() * 4 - 2));
+    if (Math.random() < 0.1) { // Monster Crit Chance
+        monsterDamage = Math.floor(monsterDamage * CRIT_MULTIPLIER);
+        addMessage(`💢 치명타! ${monster.name}이(가) ${monsterDamage}의 데미지를 입혔다!`);
+    }
+    const finalDamage = Math.max(1, monsterDamage - player.defense);
+    addMessage(`🛡️ ${monster.name}의 공격! ${player.name}은(는) ${finalDamage}의 피해를 입었다.`);
+    player.hp = Math.max(0, player.hp - finalDamage);
 
-    if (player.hp <= 0) {
-        handlePlayerDefeat();
-    } else {
-        renderDungeonScreen();
+    // Apply monster's on-hit effect
+    const baseMonsterData = (monster.name.startsWith('👑') ? bossList : monsterList).find(m => monster.name.includes(m.name));
+    if (baseMonsterData?.onHitEffect) {
+        const effect = baseMonsterData.onHitEffect;
+        if (Math.random() < effect.chance) {
+            // FIX: Create a proper StatusEffect object and cast the type to satisfy TypeScript.
+            applyStatusEffect(player, { 
+                type: effect.type as StatusEffectType, 
+                duration: effect.duration, 
+                potency: effect.potency 
+            });
+        }
     }
 }
 
@@ -709,13 +800,15 @@ function monsterDefeated() {
         addMessage(`💎 전리품 획득: <span class="rarity-${droppedItem.rarity}">${droppedItem.name}</span>!`);
     }
     
+    let leveledUp = false;
     while (player.xp >= player.xpToNextLevel) {
         player.xp -= player.xpToNextLevel; 
         levelUp();
+        leveledUp = true;
     }
 
     if (isBossFloor) {
-        renderDungeonClearScreen();
+        renderDungeonClearScreen(leveledUp);
     } else {
         renderNextFloorScreen();
     }
@@ -753,21 +846,28 @@ function continueDungeon() {
     renderDungeonScreen();
 }
 
-function renderDungeonClearScreen() {
+function renderDungeonClearScreen(leveledUp: boolean) {
     addMessage(`🏆 던전 ${dungeonLevel} 클리어! 마을로 귀환합니다.`);
+    const skillButtonHtml = (player.skillPoints > 0 || leveledUp) ? `<button id="skill-tree-button" class="button">스킬 배우기 (SP: ${player.skillPoints})</button>` : '';
     root.innerHTML = `
         <div class="screen-container">
             <h1>던전 클리어!</h1>
             <p>강력한 보스를 물리쳤습니다!</p>
              <div id="action-buttons" class="town-actions">
-                <button id="skill-tree-button" class="button">스킬 배우기 (SP: ${player.skillPoints})</button>
+                ${skillButtonHtml}
                 <button id="return-town-button" class="button">마을로 돌아가기</button>
             </div>
         </div>
     `;
     dungeonLevel++;
     document.getElementById('skill-tree-button')?.addEventListener('click', renderSkillTreeScreen);
-    document.getElementById('return-town-button')?.addEventListener('click', renderTownScreen);
+    document.getElementById('return-town-button')?.addEventListener('click', () => {
+        player.hp = player.maxHp;
+        player.statusEffects = [];
+        player.activeBuffs = [];
+        recalculatePlayerStats();
+        renderTownScreen();
+    });
 }
 
 function renderShopScreen() {
@@ -886,11 +986,11 @@ function handlePlayerDefeat(isEscaping = false) {
     }
     
     player.activeBuffs = [];
+    player.statusEffects = [];
     recalculatePlayerStats();
     player.hp = player.maxHp;
     renderTownScreen();
 }
-
 
 function renderSkillTreeScreen() {
     currentScreen = GameScreen.SKILL_TREE;
@@ -1140,14 +1240,59 @@ function unequipItem(slot: ItemSlot) {
         player.inventory.push(item);
         player.equipment[slot] = null;
 
-        const previousMaxHp = player.maxHp;
         recalculatePlayerStats();
-        const hpLoss = previousMaxHp - player.maxHp;
         if(player.hp > player.maxHp) player.hp = player.maxHp;
 
         renderEquipmentScreen();
     }
 }
 
+function applyStatusEffect(target: Character, newEffect: StatusEffect) {
+    const existingEffect = target.statusEffects.find(se => se.type === newEffect.type);
+    if (existingEffect) {
+        existingEffect.duration = Math.max(existingEffect.duration, newEffect.duration);
+        existingEffect.potency = Math.max(existingEffect.potency, newEffect.potency);
+    } else {
+        target.statusEffects.push(newEffect);
+    }
+    const def = STATUS_EFFECT_DEFINITIONS[newEffect.type];
+    addMessage(`${def.icon} ${target.name}이(가) [${def.name}] 효과를 받았다!`);
+}
+
+function processStatusEffects(character: Character): boolean {
+    let isStunned = false;
+    let totalDamage = 0;
+
+    character.statusEffects = character.statusEffects.filter(se => {
+        const def = STATUS_EFFECT_DEFINITIONS[se.type];
+        if (se.type === 'stun') {
+            isStunned = true;
+        }
+        if (se.type === 'poison') {
+            let poisonDamage = se.potency;
+            if ('className' in character && character.className === '도적') {
+                // FIX: Cast character to PlayerCharacter to access learnedSkills property.
+                const poisonMasteryLevel = (character as PlayerCharacter).learnedSkills['r_lethality'] || 0;
+                poisonDamage += poisonMasteryLevel * 2;
+            }
+            totalDamage += poisonDamage;
+            addMessage(`${def.icon} [${def.name}] 효과로 ${character.name}이(가) ${poisonDamage}의 피해를 입었다!`);
+        }
+        if (se.type === 'burn') {
+            totalDamage += se.potency;
+            addMessage(`${def.icon} [${def.name}] 효과로 ${character.name}이(가) ${se.potency}의 피해를 입었다!`);
+        }
+        
+        se.duration--;
+        return se.duration > 0;
+    });
+
+    if (totalDamage > 0) {
+        character.hp = Math.max(0, character.hp - totalDamage);
+    }
+    
+    recalculatePlayerStats(); // Stats might change if weaken/vulnerable wears off
+    return isStunned;
+}
 
 createStartScreen();
