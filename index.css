@@ -13,6 +13,7 @@
   --skill-learnable-bg: #f1c40f;
   --skill-locked-bg: #7f8c8d;
   --skill-maxed-bg: #e67e22;
+  --disenchant-color: #9b59b6;
 
   --rarity-common: #ecf0f1;
   --rarity-uncommon: #2ecc71;
@@ -198,6 +199,12 @@ p {
     font-size: 0.9rem;
 }
 
+.gold-display {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
 .gold-sp-display {
     text-align: right;
     font-size: 0.9rem;
@@ -206,6 +213,16 @@ p {
 .gold-sp-display p {
     margin: 0;
 }
+.gold-sp-display.top-display {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    background: rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
 
 .player-stats {
     display: grid;
@@ -223,6 +240,15 @@ p {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.ultimate-skill-display {
+    grid-column: 1 / -1;
     margin-top: 0.5rem;
     padding-top: 0.5rem;
     border-top: 1px solid var(--border-color);
@@ -297,9 +323,10 @@ p {
     gap: 1rem;
 }
 
-.town-actions .button:last-child:nth-child(odd) {
+.town-actions .button:nth-last-child(1) {
     grid-column: 1 / -1;
 }
+
 
 .button {
   padding: 0.8rem;
@@ -364,120 +391,33 @@ p {
     font-size: 1rem;
     min-width: 100px;
 }
-#back-to-town, #back-to-town-skill, #back-to-town-equip {
+#back-to-town {
     margin-top: auto;
     width: 100%;
-}
-
-/* Skill Tree Styles */
-.skill-tree-container {
-    justify-content: flex-start;
-}
-.skill-tree-header {
-    margin-bottom: 1rem;
-}
-.skill-tree {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    overflow-y: auto;
-    padding: 0.5rem;
-    flex-grow: 1;
-    position: relative;
-}
-.skill-tier h3 {
-    margin: 0 0 0.5rem;
-    text-align: left;
-    font-size: 1rem;
-    color: var(--xp-bar-color);
-    padding-bottom: 0.25rem;
-    border-bottom: 1px solid var(--border-color);
-}
-.skill-tier-nodes {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-}
-.skill-tree-lines {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.skill-node {
-    padding: 0.75rem;
-    border-radius: 8px;
-    text-align: center;
-    border: 2px solid;
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    z-index: 1;
-    position: relative;
-}
-.skill-node p {
-    margin: 0;
-}
-.skill-name {
-    font-weight: bold;
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
-}
-.skill-level {
-    font-size: 0.9rem;
-    font-weight: bold;
-    margin-bottom: 0.25rem;
-}
-.skill-type {
-    font-size: 0.8rem;
-    opacity: 0.8;
-}
-
-.skill-node.locked {
-    background-color: var(--skill-locked-bg);
-    border-color: #636e72;
-    color: #b2bec3;
-    cursor: not-allowed;
-}
-.skill-node.learnable {
-    background-color: var(--skill-learnable-bg);
-    color: #2d3436;
-    border-color: #fdcb6e;
-    cursor: pointer;
-}
-.skill-node.learnable:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-.skill-node.learned {
-    background-color: var(--skill-learned-bg);
-    color: white;
-    border-color: #00b894;
-    cursor: pointer;
-}
-.skill-node.maxed {
-    background-color: var(--skill-maxed-bg);
-    color: white;
-    border-color: #d35400;
-    cursor: default;
 }
 
 /* Equipment Screen Styles */
 .equipment-screen {
     justify-content: flex-start;
 }
+.equipment-screen h1 {
+    margin-bottom: 0.5rem;
+}
+.equipment-screen h2 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+.sell-mode-indicator {
+    color: var(--monster-hp-color);
+    font-size: 1rem;
+}
+
 .equipment-slots {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
     width: 100%;
-    margin: 1rem 0;
+    margin: 1rem 0 0 0;
 }
 .slot-container h3 {
     margin: 0 0 0.5rem 0;
@@ -493,6 +433,12 @@ p {
     padding: 0.5rem;
     background-color: rgba(0,0,0,0.2);
     border-radius: 8px;
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+    min-height: 150px;
+}
+.inventory-grid.sell-mode {
+    border-color: var(--monster-hp-color);
 }
 .item-card {
     background-color: var(--secondary-bg);
@@ -500,10 +446,15 @@ p {
     border-radius: 8px;
     padding: 0.75rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 .item-card:hover {
     background-color: var(--primary-bg);
+}
+.item-card.sellable:hover {
+    box-shadow: 0 0 8px var(--monster-hp-color);
 }
 .item-card.empty {
     display: flex;
@@ -516,6 +467,32 @@ p {
 .item-card.empty:hover {
     background-color: var(--secondary-bg);
 }
+.item-card.restricted {
+    opacity: 0.6;
+}
+.restricted-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    color: var(--monster-hp-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    border-radius: 8px;
+    pointer-events: none;
+}
+.sell-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(231, 76, 60, 0.9), transparent);
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    padding: 1.2rem 0 0.2rem 0;
+    pointer-events: none;
+}
 .item-card .item-name {
     font-weight: bold;
     margin: 0 0 0.25rem 0;
@@ -526,6 +503,99 @@ p {
     color: #bdc3c7;
     margin: 0;
 }
+.equipment-screen-footer {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+
+/* Enhancement Screen Styles */
+.enhancement-screen {
+    justify-content: flex-start;
+}
+.enhancement-screen h1 { margin-bottom: 0.5rem; }
+.enhancement-slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+.enhancement-slot {
+    text-align: center;
+}
+.enhancement-slot h3 {
+    margin: 0 0 0.5rem;
+}
+#enhancement-details {
+    width: 100%;
+    min-height: 150px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+}
+#enhancement-details h3 {
+    margin: 0 0 1rem;
+    color: var(--xp-bar-color);
+}
+.enhancement-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.info-row {
+    display: flex;
+    justify-content: space-between;
+}
+.cost-display {
+    font-weight: bold;
+}
+.next-stats {
+    display: flex;
+    gap: 0.5rem;
+    font-weight: bold;
+    color: var(--player-hp-color);
+}
+.penalty-info {
+    font-size: 0.8rem;
+    color: var(--monster-hp-color);
+    margin: 0 0 1rem;
+}
+#enhance-button {
+    width: 100%;
+}
+
+/* Disenchant Screen Styles */
+.disenchant-screen {
+    justify-content: flex-start;
+}
+.disenchant-screen h1 { margin-bottom: 0.5rem; }
+.disenchant-screen h2 { margin: 1rem 0 0.5rem 0; font-size: 1.2rem; }
+.inventory-grid.disenchant-mode {
+    border-color: var(--disenchant-color);
+}
+.item-card.disenchantable:hover {
+    box-shadow: 0 0 10px var(--disenchant-color);
+}
+.disenchant-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, var(--disenchant-color), transparent);
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    padding: 1.2rem 0 0.2rem 0;
+    pointer-events: none;
+}
+
 
 /* Rarity Colors */
 .rarity-common { color: var(--rarity-common); }
