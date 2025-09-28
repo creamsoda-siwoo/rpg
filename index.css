@@ -14,6 +14,7 @@
   --skill-locked-bg: #7f8c8d;
   --skill-maxed-bg: #e67e22;
   --disenchant-color: #9b59b6;
+  --enchant-color: #e67e22;
 
   --rarity-common: #ecf0f1;
   --rarity-uncommon: #2ecc71;
@@ -206,7 +207,9 @@ p {
 }
 
 .gold-sp-display {
-    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     font-size: 0.9rem;
     font-weight: bold;
 }
@@ -215,7 +218,7 @@ p {
 }
 .gold-sp-display.top-display {
     width: 100%;
-    display: flex;
+    flex-direction: row;
     justify-content: space-around;
     background: rgba(0,0,0,0.2);
     padding: 0.5rem;
@@ -406,6 +409,12 @@ p {
     font-size: 1rem;
     font-weight: 500;
 }
+.shop-item .item-class {
+    font-size: 0.8rem;
+    color: var(--border-color);
+    margin-left: 0.5rem;
+}
+
 .shop-item .button {
     padding: 0.5rem 0.8rem;
     font-size: 0.9rem;
@@ -504,6 +513,9 @@ p {
     transition: background-color 0.2s, box-shadow 0.2s;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 .item-card:hover {
     background-color: var(--primary-bg);
@@ -550,14 +562,27 @@ p {
 }
 .item-card .item-name {
     font-weight: bold;
-    margin: 0 0 0.25rem 0;
+    margin: 0;
     font-size: 1rem;
+}
+.item-card .item-class {
+    font-size: 0.8rem;
+    color: var(--border-color);
+    font-style: italic;
+    margin: 0;
 }
 .item-card .item-stats {
     font-size: 0.8rem;
     color: #bdc3c7;
     margin: 0;
 }
+.item-card .item-enchantment {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--enchant-color);
+    margin-top: 0.25rem;
+}
+
 .equipment-screen-footer {
     width: 100%;
     display: grid;
@@ -658,8 +683,19 @@ p {
     color: var(--monster-hp-color);
     margin: 0 0 1rem;
 }
-#enhance-button {
+#enhance-button, #enchant-button {
     width: 100%;
+}
+.current-enchantment {
+    font-size: 0.9rem;
+    color: var(--enchant-color);
+    margin-bottom: 0.5rem;
+    font-style: italic;
+}
+.enchant-warning {
+    font-size: 0.8rem;
+    color: var(--skill-learnable-bg);
+    margin: 0 0 1rem;
 }
 
 /* Disenchant Styles */

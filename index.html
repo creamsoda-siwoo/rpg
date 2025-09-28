@@ -21,6 +21,7 @@
       --skill-locked-bg: #7f8c8d;
       --skill-maxed-bg: #e67e22;
       --disenchant-color: #9b59b6;
+      --enchant-color: #e67e22;
 
       --rarity-common: #ecf0f1;
       --rarity-uncommon: #2ecc71;
@@ -213,7 +214,9 @@
     }
 
     .gold-sp-display {
-        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
         font-size: 0.9rem;
         font-weight: bold;
     }
@@ -222,7 +225,7 @@
     }
     .gold-sp-display.top-display {
         width: 100%;
-        display: flex;
+        flex-direction: row;
         justify-content: space-around;
         background: rgba(0,0,0,0.2);
         padding: 0.5rem;
@@ -413,6 +416,12 @@
         font-size: 1rem;
         font-weight: 500;
     }
+    .shop-item .item-class {
+        font-size: 0.8rem;
+        color: var(--border-color);
+        margin-left: 0.5rem;
+    }
+
     .shop-item .button {
         padding: 0.5rem 0.8rem;
         font-size: 0.9rem;
@@ -511,6 +520,9 @@
         transition: background-color 0.2s, box-shadow 0.2s;
         position: relative;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
     }
     .item-card:hover {
         background-color: var(--primary-bg);
@@ -557,14 +569,27 @@
     }
     .item-card .item-name {
         font-weight: bold;
-        margin: 0 0 0.25rem 0;
+        margin: 0;
         font-size: 1rem;
+    }
+    .item-card .item-class {
+        font-size: 0.8rem;
+        color: var(--border-color);
+        font-style: italic;
+        margin: 0;
     }
     .item-card .item-stats {
         font-size: 0.8rem;
         color: #bdc3c7;
         margin: 0;
     }
+    .item-card .item-enchantment {
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: var(--enchant-color);
+        margin-top: 0.25rem;
+    }
+
     .equipment-screen-footer {
         width: 100%;
         display: grid;
@@ -665,8 +690,19 @@
         color: var(--monster-hp-color);
         margin: 0 0 1rem;
     }
-    #enhance-button {
+    #enhance-button, #enchant-button {
         width: 100%;
+    }
+    .current-enchantment {
+        font-size: 0.9rem;
+        color: var(--enchant-color);
+        margin-bottom: 0.5rem;
+        font-style: italic;
+    }
+    .enchant-warning {
+        font-size: 0.8rem;
+        color: var(--skill-learnable-bg);
+        margin: 0 0 1rem;
     }
 
     /* Disenchant Styles */
@@ -827,9 +863,19 @@
         color: var(--text-color);
         text-decoration: underline;
     }
+    
+    #creator-credit {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        font-size: 0.8rem;
+        color: var(--border-color);
+        z-index: 1000;
+    }
   </style>
 </head>
 <body>
+  <div id="creator-credit">제작자:한국인이라면</div>
   <div id="root"></div>
   <script type="module">
     /**
@@ -841,6 +887,10 @@
     if (!root) {
       throw new Error('Could not find root element');
     }
+
+    // --- Type Definitions ---
+    // Note: In a real .ts file, you would use 'type' and 'interface'. 
+    // Here we omit them for brevity within the HTML, but the structure is the same.
 
     // --- Game Constants ---
     const CRIT_MULTIPLIER = 1.5;
@@ -953,6 +1003,39 @@
         { id: 306, name: "밤의 장막 갑옷", type: 'armor', stats: { defense: 3, evadeChance: 0.05, maxHp: 20 }, rarity: 'rare', cost: 310, classRestriction: ['도적'] },
     ];
 
+    const ENCHANTMENT_POOL = {
+        weapon: {
+            common: [
+                { id: 'w_c_atk', description: '공격력 +3', effects: { attackPower: 3 } },
+                { id: 'w_c_crit', description: '치명타 +1%', effects: { critChance: 0.01 } },
+            ],
+            uncommon: [
+                { id: 'w_u_atk', description: '공격력 +6', effects: { attackPower: 6 } },
+                { id: 'w_u_crit', description: '치명타 +2%', effects: { critChance: 0.02 } },
+            ],
+            rare: [
+                { id: 'w_r_atk', description: '공격력 +10', effects: { attackPower: 10 } },
+                { id: 'w_r_crit', description: '치명타 +4%', effects: { critChance: 0.04 } },
+            ]
+        },
+        armor: {
+            common: [
+                { id: 'a_c_hp', description: '최대 HP +15', effects: { maxHp: 15 } },
+                { id: 'a_c_def', description: '방어력 +2', effects: { defense: 2 } },
+            ],
+            uncommon: [
+                { id: 'a_u_hp', description: '최대 HP +30', effects: { maxHp: 30 } },
+                { id: 'a_u_def', description: '방어력 +4', effects: { defense: 4 } },
+                { id: 'a_u_evade', description: '회피 +1%', effects: { evadeChance: 0.01 } },
+            ],
+            rare: [
+                { id: 'a_r_hp', description: '최대 HP +50', effects: { maxHp: 50 } },
+                { id: 'a_r_def', description: '방어력 +7', effects: { defense: 7 } },
+                { id: 'a_r_evade', description: '회피 +2%', effects: { evadeChance: 0.02 } },
+            ]
+        }
+    };
+
     const QUEST_POOL = [
         { type: 'KILL_MONSTERS', description: (n) => `몬스터 ${n}마리 처치`, targets: [10, 15, 20], reward: { gold: 150, stones: 3 } },
         { type: 'CLEAR_DUNGEON', description: (n) => `던전 ${n}회 클리어`, targets: [1, 2], reward: { gold: 250, potions: 1 } },
@@ -996,7 +1079,7 @@
       currentScreen = 'START';
       root.innerHTML = `
         <div class="screen-container">
-          <h1>간단 RPG</h1>
+          <h1>간단RPG</h1>
           <p>직업을 선택하고, 장비를 강화하여 던전을 정복하세요!</p>
           <button id="start-button" class="button">게임 시작</button>
         </div>
@@ -1008,9 +1091,9 @@
         const itemData = ITEM_DATABASE.find(i => i.id === itemId);
         if (!itemData) return null;
 
-        // Deep copy to create a unique instance
         const newItem = JSON.parse(JSON.stringify(itemData));
         newItem.enhancementLevel = 0;
+        newItem.enchantment = null;
         return newItem;
     }
 
@@ -1133,7 +1216,6 @@
         player.ultimateSkillCooldown = 0;
         player.unlockedSkills = {};
         
-        // Unequip items that the new class can't use
         Object.keys(player.equipment).forEach(slot => {
             const item = player.equipment[slot];
             if (item && !item.classRestriction.includes(newClass)) {
@@ -1163,6 +1245,7 @@
         xpToNextLevel: 100,
         gold: difficultySettings.startGold,
         enhancementStones: 0,
+        enchantmentDust: 0,
         potions: difficultySettings.startPotions,
         ultimateSkillLevel: 1,
         ultimateSkillCooldown: 0,
@@ -1192,10 +1275,8 @@
     function recalculatePlayerStats() {
         const p = player;
         
-        // Start with base stats
         const tempStats = { ...p.baseStats };
         
-        // Equipment
         Object.values(p.equipment).forEach(item => {
             if (item) {
                 Object.entries(item.stats).forEach(([stat, value]) => {
@@ -1203,10 +1284,16 @@
                         tempStats[stat] += value;
                     }
                 });
+                if (item.enchantment) {
+                     Object.entries(item.enchantment.effects).forEach(([stat, value]) => {
+                        if (stat in tempStats) {
+                            tempStats[stat] += value;
+                        }
+                    });
+                }
             }
         });
 
-        // Skill Tree
         const classSkills = SKILL_DATA[p.className];
         Object.entries(p.unlockedSkills).forEach(([skillId, level]) => {
             const skill = classSkills[skillId];
@@ -1219,14 +1306,12 @@
             }
         });
 
-        // Apply main stats from temp object to player
         p.maxHp = tempStats.maxHp;
         p.attackPower = tempStats.attackPower;
         p.defense = tempStats.defense;
         p.critChance = tempStats.critChance;
         p.evadeChance = tempStats.evadeChance;
 
-        // Buffs
         let buffAtkPercent = 0;
         let buffDefPercent = 0;
         p.activeBuffs.forEach(buff => {
@@ -1249,12 +1334,10 @@
         p.attackPower = Math.floor(p.attackPower * (1 + buffAtkPercent));
         p.defense = Math.floor(p.defense * (1 + buffDefPercent));
         
-        // Status Effects (after buffs, as they are temporary debuffs)
         p.statusEffects.forEach(se => {
             if (se.type === 'weaken') p.attackPower = Math.floor(p.attackPower * (1 - se.potency));
             if (se.type === 'vulnerable') p.defense = Math.floor(p.defense * (1 - se.potency));
         });
-
 
         p.hp = Math.min(p.hp, p.maxHp);
     }
@@ -1293,24 +1376,12 @@
             if (!button || button.disabled) return;
 
             switch(button.dataset.action) {
-                case 'dungeon':
-                    startDungeon();
-                    break;
-                case 'shop':
-                    renderShopScreen();
-                    break;
-                case 'equipment':
-                    renderEquipmentScreen();
-                    break;
-                case 'blacksmith':
-                    renderBlacksmithScreen();
-                    break;
-                case 'skill-tree':
-                    renderSkillTreeScreen();
-                    break;
-                case 'quests':
-                    renderQuestScreen();
-                    break;
+                case 'dungeon': startDungeon(); break;
+                case 'shop': renderShopScreen(); break;
+                case 'equipment': renderEquipmentScreen(); break;
+                case 'blacksmith': renderBlacksmithScreen(); break;
+                case 'skill-tree': renderSkillTreeScreen(); break;
+                case 'quests': renderQuestScreen(); break;
                 case 'class-change':
                     if (confirm(`직업을 변경하시겠습니까? ${CLASS_CHANGE_COST} 골드가 소모되며, 모든 스킬이 초기화됩니다.`)) {
                         createClassChangeScreen();
@@ -1399,6 +1470,7 @@
                         <div class="gold-sp-display">
                             <p>💰 Gold: ${p.gold}</p>
                             <p>💎 Stones: ${p.enhancementStones}</p>
+                            <p>✨ Dust: ${p.enchantmentDust || 0}</p>
                         </div>
                     </div>
                      ${dungeonInfo}
@@ -1472,20 +1544,13 @@
 
         const action = button.dataset.action;
         switch (action) {
-            case 'attack':
-                handlePlayerTurn(handleAttack);
-                break;
-            case 'potion':
-                handleUsePotion();
-                break;
-            case 'ultimate':
-                handlePlayerTurn(handleUseUltimateSkill);
-                break;
+            case 'attack': handlePlayerTurn(handleAttack); break;
+            case 'potion': handleUsePotion(); break;
+            case 'ultimate': handlePlayerTurn(handleUseUltimateSkill); break;
         }
     }
 
     function handlePlayerTurn(action) {
-        // Process player's start-of-turn effects
         const isStunned = processStatusEffects(player);
         if (isStunned) {
             addMessage(`💫 ${player.name}은(는) 기절해서 움직일 수 없다!`);
@@ -1493,39 +1558,32 @@
             return;
         }
 
-        // Decrement cooldowns and buff durations
         if (player.ultimateSkillCooldown > 0) {
             player.ultimateSkillCooldown--;
         }
         player.activeBuffs = player.activeBuffs.map(buff => ({ ...buff, duration: buff.duration - 1 })).filter(buff => buff.duration > 0);
         recalculatePlayerStats();
 
-        // Player action
         action();
 
-        // Check monster status
         if (monster.hp <= 0) {
             monsterDefeated();
         } else {
-            // Start monster turn
             handleMonsterTurn();
         }
     }
 
     function handleMonsterTurn() {
-        // Process monster's start-of-turn effects
         const isStunned = processStatusEffects(monster);
-        recalculatePlayerStats(); // Recalculate in case monster stats changed (e.g. vulnerable wore off)
+        recalculatePlayerStats(); 
         if (isStunned) {
             addMessage(`💫 ${monster.name}은(는) 기절해서 움직일 수 없다!`);
             renderDungeonScreen();
             return;
         }
 
-        // Monster action
         monsterAttack();
         
-        // Check player status
         if (player.hp <= 0) {
             handlePlayerDefeat();
         } else {
@@ -1541,7 +1599,6 @@
     function handleAttack() {
         let playerDamage = Math.floor(player.attackPower + (Math.random() * 5 - 2));
 
-        // Special skill check: Rogue's Execute
         if (player.unlockedSkills['r_execute_1'] && monster.hp / monster.maxHp <= 0.25) {
             playerDamage = Math.floor(playerDamage * 1.2);
         }
@@ -1568,7 +1625,6 @@
         const applyDamage = (multiplier) => {
             let damage = player.attackPower * multiplier;
 
-            // Special Skill Check: Mage Meteor Upgrade
             if (player.className === '마법사' && player.unlockedSkills['m_ult_1']) {
                 damage *= (1 + player.unlockedSkills['m_ult_1'] * 0.1);
             }
@@ -1581,7 +1637,7 @@
         };
 
         if (effect.damageMultiplier) {
-            if (player.className === '도적') { // Special multi-hit logic
+            if (player.className === '도적') {
                 applyDamage(effect.damageMultiplier);
                 if (monster.hp > 0) {
                     applyDamage(effect.damageMultiplier);
@@ -1607,7 +1663,7 @@
         const healAmount = Math.floor(player.maxHp * POTION_HEAL_PERCENT);
         player.hp = Math.min(player.maxHp, player.hp + healAmount);
         addMessage(`🧪 물약을 사용해 HP를 ${healAmount}만큼 회복했다!`);
-        renderDungeonScreen(); // Rerender immediately, does not start monster turn
+        renderDungeonScreen();
     }
 
     function monsterAttack() {
@@ -1617,7 +1673,7 @@
         }
         
         let monsterDamage = Math.floor(monster.attackPower + (Math.random() * 4 - 2));
-        if (Math.random() < 0.1) { // Monster Crit Chance
+        if (Math.random() < 0.1) { 
             monsterDamage = Math.floor(monsterDamage * CRIT_MULTIPLIER);
             addMessage(`💢 치명타! ${monster.name}이(가) ${monsterDamage}의 데미지를 입혔다!`);
         }
@@ -1639,13 +1695,12 @@
     }
 
     function generateLoot(monsterData) {
-        const dropChance = monster.name.startsWith('👑') ? 0.5 : 0.15; // 50% for boss, 15% for normal
+        const dropChance = monster.name.startsWith('👑') ? 0.5 : 0.15;
         if (Math.random() > dropChance) return null;
 
         const possibleLootIds = monsterData.lootTable.filter((id) => {
             const item = ITEM_DATABASE.find(i => i.id === id);
             if (!item) return false;
-            // Basic filtering to avoid very high level items at low levels
             return dungeonLevel >= (item.rarity === 'rare' ? 3 : (item.rarity === 'uncommon' ? 2 : 1));
         });
 
@@ -1674,7 +1729,6 @@
         addMessage(`🌟 경험치 ${xpGained}을(를) 획득했다!`);
         addMessage(`💰 골드 ${goldGained}을(를) 획득했다!`);
 
-        // Loot Drop
         const droppedItem = generateLoot(baseMonsterData);
         if (droppedItem) {
             player.inventory.push(droppedItem);
@@ -1774,7 +1828,10 @@
 
         const itemsHtml = filteredItems.map(item => `
             <div class="shop-item">
-                <span class="rarity-${item.rarity}">${item.name} (${item.type === 'weapon' ? '무기' : '방어구'})</span>
+                <div>
+                    <span class="rarity-${item.rarity}">${item.name}</span>
+                    <span class="item-class">(${item.classRestriction.join(', ')})</span>
+                </div>
                 <button class="button buy-item-btn" data-item-id="${item.id}" ${player.gold < item.cost ? 'disabled' : ''}>${item.cost} G</button>
             </div>
         `).join('');
@@ -1798,7 +1855,11 @@
         root.innerHTML = `
             <div class="screen-container shop-container">
                 <h1>상점</h1>
-                <p class="gold-display">💰 Gold: ${player.gold}</p>
+                 <div class="gold-sp-display top-display">
+                    <p>💰 Gold: ${player.gold}</p>
+                    <p>💎 Stones: ${player.enhancementStones}</p>
+                    <p>✨ Dust: ${player.enchantmentDust || 0}</p>
+                </div>
                 ${filtersHtml}
                 <div class="shop-items">
                     <div class="shop-item">
@@ -1893,7 +1954,7 @@
             player.inventory.splice(index, 1);
             addMessage(`💰 ${soldItemName}을(를) 판매하여 ${sellPrice}G를 얻었습니다.`);
             saveGameState();
-            renderEquipmentScreen(); // Re-render to update UI
+            renderEquipmentScreen(); 
         }
     }
 
@@ -1922,10 +1983,14 @@
                 ? `<div class="sell-overlay">판매: ${getSellPrice(item)} G</div>` 
                 : '';
 
+            const enchantmentHtml = item.enchantment ? `<p class="item-enchantment">✨ ${item.enchantment.description}</p>` : '';
+
             return `
                 <div class="item-card rarity-${item.rarity} ${isRestricted ? 'restricted' : ''} ${isSellMode && slot === 'inventory' ? 'sellable' : ''}" data-slot="${slot}" data-item-id="${item.id}" ${index !== undefined ? `data-inventory-index="${index}"` : ''}>
                     <p class="item-name">${getItemDisplayName(item)}</p>
+                    <p class="item-class">(${item.classRestriction.join(', ')})</p>
                     <p class="item-stats">${statsHtml}</p>
+                    ${enchantmentHtml}
                     ${isRestricted ? `<div class="restricted-overlay">장착불가</div>` : ''}
                     ${sellOverlayHtml}
                 </div>
@@ -1940,6 +2005,7 @@
                 <div class="gold-sp-display top-display">
                     <p>💰 Gold: ${player.gold}</p>
                     <p>💎 Stones: ${player.enhancementStones}</p>
+                    <p>✨ Dust: ${player.enchantmentDust || 0}</p>
                 </div>
                 <div class="equipment-slots">
                     <div class="slot-container">
@@ -1977,7 +2043,7 @@
         });
 
         document.getElementById('back-to-town-equip')?.addEventListener('click', () => {
-            isSellMode = false; // Ensure sell mode is off when leaving screen
+            isSellMode = false;
             renderTownScreen();
         });
     }
@@ -1991,7 +2057,7 @@
             const index = parseInt(inventoryIndexStr || '0');
             const item = player.inventory[index];
             if (item) equipItem(item, index);
-        } else { // Clicked on equipped item
+        } else {
             unequipItem(slot);
         }
     }
@@ -2079,11 +2145,9 @@
             character.hp = Math.max(0, character.hp - totalDamage);
         }
         
-        recalculatePlayerStats(); // Stats might change if weaken/vulnerable wears off
+        recalculatePlayerStats(); 
         return isStunned;
     }
-
-    // --- Blacksmith System ---
 
     function getEnhancementCost(item) {
         const rarityMultiplier = item.rarity === 'rare' ? 2.5 : (item.rarity === 'uncommon' ? 1.5 : 1);
@@ -2108,7 +2172,7 @@
         const rarityMultiplier = item.rarity === 'rare' ? 1.5 : (item.rarity === 'uncommon' ? 1.2 : 1);
         if (item.type === 'weapon') {
             return { attackPower: Math.ceil(2 * rarityMultiplier) };
-        } else { // Armor
+        } else {
             return { defense: Math.ceil(1 * rarityMultiplier), maxHp: Math.ceil(5 * rarityMultiplier) };
         }
     }
@@ -2121,11 +2185,11 @@
                 <div class="enhancement-slots">
                     <div class="enhancement-slot" data-slot="weapon">
                         <h3>무기</h3>
-                        ${player.equipment.weapon ? createItemCardForEnhance(player.equipment.weapon) : '<div class="item-card empty">없음</div>'}
+                        ${player.equipment.weapon ? createItemCardForBlacksmith(player.equipment.weapon) : '<div class="item-card empty">없음</div>'}
                     </div>
                     <div class="enhancement-slot" data-slot="armor">
                         <h3>방어구</h3>
-                        ${player.equipment.armor ? createItemCardForEnhance(player.equipment.armor) : '<div class="item-card empty">없음</div>'}
+                        ${player.equipment.armor ? createItemCardForBlacksmith(player.equipment.armor) : '<div class="item-card empty">없음</div>'}
                     </div>
                 </div>
                 <div id="enhancement-details">
@@ -2144,38 +2208,57 @@
             `;
         };
 
+        const renderEnchantContent = () => {
+            return `
+                <div class="enhancement-slots">
+                    <div class="enhancement-slot" data-slot="weapon">
+                        <h3>무기</h3>
+                        ${player.equipment.weapon ? createItemCardForBlacksmith(player.equipment.weapon) : '<div class="item-card empty">없음</div>'}
+                    </div>
+                    <div class="enhancement-slot" data-slot="armor">
+                        <h3>방어구</h3>
+                        ${player.equipment.armor ? createItemCardForBlacksmith(player.equipment.armor) : '<div class="item-card empty">없음</div>'}
+                    </div>
+                </div>
+                <div id="enhancement-details">
+                    <p>마법 부여할 장비를 선택하세요.</p>
+                </div>
+            `;
+        }
+
         root.innerHTML = `
             <div class="screen-container blacksmith-screen">
                 <h1>대장간</h1>
                 <div class="gold-sp-display top-display">
                     <p>💰 Gold: ${player.gold}</p>
                     <p>💎 Stones: ${player.enhancementStones}</p>
+                    <p>✨ Dust: ${player.enchantmentDust || 0}</p>
                 </div>
                 <div class="blacksmith-tabs">
                     <button id="tab-enhance" class="tab-button ${blacksmithMode === 'enhance' ? 'active' : ''}">강화</button>
                     <button id="tab-disenchant" class="tab-button ${blacksmithMode === 'disenchant' ? 'active' : ''}">분해</button>
+                    <button id="tab-enchant" class="tab-button ${blacksmithMode === 'enchant' ? 'active' : ''}">마법 부여</button>
                 </div>
                 <div id="blacksmith-content">
-                    ${blacksmithMode === 'enhance' ? renderEnhanceContent() : renderDisenchantContent()}
+                    ${blacksmithMode === 'enhance' ? renderEnhanceContent() : (blacksmithMode === 'disenchant' ? renderDisenchantContent() : renderEnchantContent())}
                 </div>
                 <button id="back-to-town" class="button">마을로 돌아가기</button>
             </div>
         `;
 
-        document.getElementById('tab-enhance')?.addEventListener('click', () => {
-            blacksmithMode = 'enhance';
-            renderBlacksmithScreen();
-        });
-        document.getElementById('tab-disenchant')?.addEventListener('click', () => {
-            blacksmithMode = 'disenchant';
-            renderBlacksmithScreen();
-        });
+        document.getElementById('tab-enhance')?.addEventListener('click', () => { blacksmithMode = 'enhance'; renderBlacksmithScreen(); });
+        document.getElementById('tab-disenchant')?.addEventListener('click', () => { blacksmithMode = 'disenchant'; renderBlacksmithScreen(); });
+        document.getElementById('tab-enchant')?.addEventListener('click', () => { blacksmithMode = 'enchant'; renderBlacksmithScreen(); });
 
-        if (blacksmithMode === 'enhance') {
+        if (blacksmithMode === 'enhance' || blacksmithMode === 'enchant') {
             document.querySelectorAll('.enhancement-slot').forEach(slot => {
                 slot.addEventListener('click', () => {
                     const slotType = slot.getAttribute('data-slot');
-                    renderEnhancementDetails(slotType);
+                    if (blacksmithMode === 'enhance') {
+                        renderEnhancementDetails(slotType);
+                    } else {
+                        renderEnchantDetails(slotType);
+                    }
                 });
             });
         } else {
@@ -2188,7 +2271,7 @@
     }
 
 
-    function createItemCardForEnhance(item) {
+    function createItemCardForBlacksmith(item) {
         const statsHtml = Object.entries(item.stats).map(([stat, value]) => {
             let statName = '';
             switch(stat) {
@@ -2201,10 +2284,14 @@
             return `${statName} +${value}`;
         }).join(', ');
 
+        const enchantmentHtml = item.enchantment ? `<p class="item-enchantment">✨ ${item.enchantment.description}</p>` : '';
+
         return `
             <div class="item-card rarity-${item.rarity}">
                 <p class="item-name">${getItemDisplayName(item)}</p>
+                <p class="item-class">(${item.classRestriction.join(', ')})</p>
                 <p class="item-stats">${statsHtml}</p>
+                ${enchantmentHtml}
             </div>
         `;
     }
@@ -2276,7 +2363,6 @@
         const successChance = getSuccessChance(item.enhancementLevel);
 
         if (Math.random() < successChance) {
-            // Success
             item.enhancementLevel++;
             const statIncrease = getStatIncrease(item);
             Object.entries(statIncrease).forEach(([stat, value]) => {
@@ -2289,9 +2375,7 @@
             });
             alert('✨ 강화 성공!');
         } else {
-            // Failure
             if (item.enhancementLevel >= 5 && Math.random() < 0.3) {
-                // Level down
                 const statIncrease = getStatIncrease({ ...item, enhancementLevel: item.enhancementLevel - 1});
                  Object.entries(statIncrease).forEach(([stat, value]) => {
                     const key = stat;
@@ -2302,7 +2386,6 @@
                 item.enhancementLevel--;
                 alert('📉 강화 실패... 강화 단계가 하락했습니다.');
             } else if (item.enhancementLevel >= 5) {
-                 // Refund
                 const refund = Math.floor(goldCost / 2);
                 player.gold += refund;
                 alert(`🔥 강화 실패... 하지만 비용의 50% (${refund}G)를 돌려받았습니다.`);
@@ -2323,12 +2406,22 @@
         renderEnhancementDetails(slot);
     }
 
-    // --- Disenchant System ---
-
     function getDisenchantYield(item) {
-        const rarityBonus = item.rarity === 'rare' ? 7 : item.rarity === 'uncommon' ? 3 : 1;
-        const levelBonus = Math.floor(rarityBonus * item.enhancementLevel * 0.75);
-        return rarityBonus + levelBonus;
+        let rarityBonusStones = 1, rarityBonusDust = 1;
+        if (item.rarity === 'uncommon') {
+            rarityBonusStones = 3;
+            rarityBonusDust = 5;
+        } else if (item.rarity === 'rare') {
+            rarityBonusStones = 7;
+            rarityBonusDust = 15;
+        }
+        const levelBonusStones = Math.floor(rarityBonusStones * item.enhancementLevel * 0.75);
+        const levelBonusDust = Math.floor(rarityBonusDust * item.enhancementLevel * 0.5);
+
+        return {
+            stones: rarityBonusStones + levelBonusStones,
+            dust: rarityBonusDust + levelBonusDust,
+        };
     }
 
     function handleDisenchantItemClick(event) {
@@ -2340,45 +2433,124 @@
         const item = player.inventory[index];
         if (!item) return;
 
-        const yieldAmount = getDisenchantYield(item);
-        const confirmationMessage = `정말로 '${getItemDisplayName(item)}'을(를) 분해하여 강화석 💎${yieldAmount}개를 얻으시겠습니까? 이 행동은 되돌릴 수 없습니다.`;
+        const { stones, dust } = getDisenchantYield(item);
+        const confirmationMessage = `정말로 '${getItemDisplayName(item)}'을(를) 분해하여 강화석 💎${stones}개와 마법 부여 가루 ✨${dust}개를 얻으시겠습니까? 이 행동은 되돌릴 수 없습니다.`;
 
         if (confirm(confirmationMessage)) {
-            player.enhancementStones += yieldAmount;
+            player.enhancementStones += stones;
+            player.enchantmentDust += dust;
             const disenchantedItemName = getItemDisplayName(item);
             player.inventory.splice(index, 1);
-            addMessage(`🔮 ${disenchantedItemName}을(를) 분해하여 강화석 💎${yieldAmount}개를 얻었습니다.`);
+            addMessage(`🔮 ${disenchantedItemName}을(를) 분해하여 💎${stones}개와 ✨${dust}개를 얻었습니다.`);
             saveGameState();
             renderBlacksmithScreen();
         }
     }
 
     function createItemCardForDisenchant(item, index) {
-            const statsHtml = Object.entries(item.stats).map(([stat, value]) => {
-                let statName = '';
-                switch(stat) {
-                    case 'maxHp': statName = 'HP'; break;
-                    case 'attackPower': statName = 'ATK'; break;
-                    case 'defense': statName = 'DEF'; break;
-                    case 'critChance': statName = '치명타'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
-                    case 'evadeChance': statName = '회피'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
-                }
-                return `${statName} +${value}`;
-            }).join(', ');
+        const statsHtml = Object.entries(item.stats).map(([stat, value]) => {
+            let statName = '';
+            switch(stat) {
+                case 'maxHp': statName = 'HP'; break;
+                case 'attackPower': statName = 'ATK'; break;
+                case 'defense': statName = 'DEF'; break;
+                case 'critChance': statName = '치명타'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
+                case 'evadeChance': statName = '회피'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
+            }
+            return `${statName} +${value}`;
+        }).join(', ');
 
-            const yieldAmount = getDisenchantYield(item);
-            const disenchantOverlayHtml = `<div class="disenchant-overlay">분해 시: 💎 ${yieldAmount}</div>`;
+        const { stones, dust } = getDisenchantYield(item);
+        const disenchantOverlayHtml = `<div class="disenchant-overlay">분해 시: 💎 ${stones} / ✨ ${dust}</div>`;
+        const enchantmentHtml = item.enchantment ? `<p class="item-enchantment">✨ ${item.enchantment.description}</p>` : '';
 
-            return `
-                <div class="item-card rarity-${item.rarity} disenchantable" data-inventory-index="${index}">
-                    <p class="item-name">${getItemDisplayName(item)}</p>
-                    <p class="item-stats">${statsHtml}</p>
-                    ${disenchantOverlayHtml}
+        return `
+            <div class="item-card rarity-${item.rarity} disenchantable" data-inventory-index="${index}">
+                <p class="item-name">${getItemDisplayName(item)}</p>
+                <p class="item-class">(${item.classRestriction.join(', ')})</p>
+                <p class="item-stats">${statsHtml}</p>
+                ${enchantmentHtml}
+                ${disenchantOverlayHtml}
+            </div>
+        `;
+    };
+
+    function getEnchantmentCost(item) {
+        let gold = 100, dust = 10;
+        if (item.rarity === 'uncommon') {
+            gold = 300;
+            dust = 30;
+        } else if (item.rarity === 'rare') {
+            gold = 800;
+            dust = 75;
+        }
+        return { gold, dust };
+    }
+
+    function renderEnchantDetails(slot) {
+        const detailsContainer = document.getElementById('enhancement-details');
+        if (!detailsContainer) return;
+
+        const item = player.equipment[slot];
+        if (!item) {
+            detailsContainer.innerHTML = `<p>마법 부여할 장비가 없습니다.</p>`;
+            return;
+        }
+
+        const { gold, dust } = getEnchantmentCost(item);
+        
+        const currentEnchantmentHtml = item.enchantment 
+            ? `<p class="current-enchantment">현재 효과: ${item.enchantment.description}</p><p class="enchant-warning">마법 부여 시 현재 효과가 새로운 무작위 효과로 변경됩니다.</p>`
+            : '<p>현재 부여된 마법 효과가 없습니다.</p>';
+
+        detailsContainer.innerHTML = `
+            <h3>${getItemDisplayName(item)}</h3>
+            ${currentEnchantmentHtml}
+            <div class="enhancement-info">
+                <div class="info-row">
+                    <span>마법 부여 비용:</span>
+                    <span class="cost-display">${gold} G / ${dust} ✨</span>
                 </div>
-            `;
-        };
+            </div>
+            <button id="enchant-button" class="button" ${player.gold < gold || player.enchantmentDust < dust ? 'disabled' : ''}>마법 부여</button>
+        `;
+        document.getElementById('enchant-button')?.addEventListener('click', () => handleEnchant(slot));
+    }
 
-    // --- Skill Tree System ---
+    function handleEnchant(slot) {
+        const item = player.equipment[slot];
+        if (!item) return;
+
+        const { gold, dust } = getEnchantmentCost(item);
+        if (player.gold < gold || player.enchantmentDust < dust) return;
+
+        const confirmMsg = item.enchantment 
+            ? '이미 마법 부여가 된 아이템입니다. 새로운 효과로 덮어쓰시겠습니까?'
+            : '이 장비에 마법을 부여하시겠습니까?';
+
+        if (confirm(confirmMsg)) {
+            player.gold -= gold;
+            player.enchantmentDust -= dust;
+
+            const pool = ENCHANTMENT_POOL[item.type][item.rarity];
+            const newEnchantment = pool[Math.floor(Math.random() * pool.length)];
+            item.enchantment = newEnchantment;
+
+            alert(`✨ 마법 부여 성공! [${newEnchantment.description}] 효과를 얻었습니다.`);
+
+            const previousMaxHp = player.maxHp;
+            recalculatePlayerStats();
+            const hpChange = player.maxHp - previousMaxHp;
+            player.hp += hpChange;
+            player.hp = Math.min(player.hp, player.maxHp);
+            if (player.hp <= 0) player.hp = 1;
+
+            saveGameState();
+            renderBlacksmithScreen();
+            renderEnchantDetails(slot);
+        }
+    }
+
     function isSkillLearnable(skill) {
         const currentLevel = player.unlockedSkills[skill.id] || 0;
         if (currentLevel >= skill.maxLevel) return false;
@@ -2474,8 +2646,6 @@
         document.getElementById('back-to-town')?.addEventListener('click', renderTownScreen);
     }
 
-
-    // --- Quest System Functions ---
     function getTodayDateString() {
         const today = new Date();
         return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
@@ -2600,7 +2770,6 @@
         document.getElementById('back-to-town')?.addEventListener('click', renderTownScreen);
     }
 
-    // --- Game State Persistence ---
     function saveGameState() {
         const gameState = {
             player,
@@ -2617,7 +2786,6 @@
         if (savedState) {
             try {
                 const gameState = JSON.parse(savedState);
-                // Basic validation
                 if (!gameState.player || !gameState.player.className || !CLASSES[gameState.player.className]) {
                     throw new Error("Invalid or corrupted player data in save file.");
                 }
@@ -2626,17 +2794,21 @@
                 dungeonLevel = gameState.dungeonLevel;
                 currentDifficulty = gameState.currentDifficulty;
                 
-                // --- Start of Save File Migration / Polyfill ---
                 dailyQuests = gameState.dailyQuests || [];
                 lastQuestDate = gameState.lastQuestDate || '';
-
                 if (!player.unlockedSkills) player.unlockedSkills = {};
                 if (!player.inventory) player.inventory = [];
                 if (!player.activeBuffs) player.activeBuffs = [];
                 if (!player.statusEffects) player.statusEffects = [];
                 if (!player.equipment) player.equipment = { weapon: null, armor: null };
+                if (!player.enchantmentDust) player.enchantmentDust = 0;
 
-                // Ensure baseStats exist (critical for recalculation)
+                [...player.inventory, player.equipment.weapon, player.equipment.armor].forEach(item => {
+                    if(item && item.enchantment === undefined) {
+                        item.enchantment = null;
+                    }
+                });
+
                 if (!player.baseStats) {
                     const classData = CLASSES[player.className];
                     player.baseStats = {
@@ -2647,14 +2819,11 @@
                         evadeChance: classData.evade,
                     };
                 }
-                // --- End of Save File Migration ---
 
                 messageLog = ['게임 데이터를 불러왔습니다.'];
                 
-                // Crucial: Recalculate all derived stats after loading and migrating.
                 recalculatePlayerStats();
                 
-                // Ensure HP is valid after recalculation.
                 if (player.hp > player.maxHp || player.hp === undefined || player.hp === null) {
                     player.hp = player.maxHp;
                 }

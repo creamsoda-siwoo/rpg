@@ -39,6 +39,12 @@ interface PlayerStats {
 type ItemSlot = 'weapon' | 'armor';
 type Rarity = 'common' | 'uncommon' | 'rare';
 
+interface Enchantment {
+    id: string;
+    description: string;
+    effects: Partial<PlayerStats>;
+}
+
 interface EquipmentItem {
     id: number;
     name: string;
@@ -48,6 +54,7 @@ interface EquipmentItem {
     cost: number;
     enhancementLevel: number;
     classRestriction: (keyof typeof CLASSES)[];
+    enchantment: Enchantment | null;
 }
 
 interface UltimateSkill {
@@ -71,6 +78,7 @@ interface PlayerCharacter extends Character {
     xpToNextLevel: number;
     gold: number;
     enhancementStones: number;
+    enchantmentDust: number;
     potions: number;
     ultimateSkillLevel: number;
     ultimateSkillCooldown: number;
@@ -220,7 +228,7 @@ const SKILL_DATA: Record<keyof typeof CLASSES, Record<string, Skill>> = {
     },
 };
 
-const ITEM_DATABASE: Omit<EquipmentItem, 'enhancementLevel'>[] = [
+const ITEM_DATABASE: Omit<EquipmentItem, 'enhancementLevel' | 'enchantment'>[] = [
     // Common
     { id: 101, name: "녹슨 검", type: 'weapon', stats: { attackPower: 2 }, rarity: 'common', cost: 20, classRestriction: ['전사'] },
     { id: 102, name: "해진 로브", type: 'armor', stats: { maxHp: 10 }, rarity: 'common', cost: 20, classRestriction: ['마법사'] },
@@ -243,6 +251,39 @@ const ITEM_DATABASE: Omit<EquipmentItem, 'enhancementLevel'>[] = [
     { id: 303, name: "기사의 갑옷", type: 'armor', stats: { defense: 5, maxHp: 40 }, rarity: 'rare', cost: 320, classRestriction: ['전사'] },
 ];
 
+const ENCHANTMENT_POOL: { [key in ItemSlot]: { [key in Rarity]: Enchantment[] } } = {
+    weapon: {
+        common: [
+            { id: 'w_c_atk', description: '공격력 +3', effects: { attackPower: 3 } },
+            { id: 'w_c_crit', description: '치명타 +1%', effects: { critChance: 0.01 } },
+        ],
+        uncommon: [
+            { id: 'w_u_atk', description: '공격력 +6', effects: { attackPower: 6 } },
+            { id: 'w_u_crit', description: '치명타 +2%', effects: { critChance: 0.02 } },
+        ],
+        rare: [
+            { id: 'w_r_atk', description: '공격력 +10', effects: { attackPower: 10 } },
+            { id: 'w_r_crit', description: '치명타 +4%', effects: { critChance: 0.04 } },
+        ]
+    },
+    armor: {
+        common: [
+            { id: 'a_c_hp', description: '최대 HP +15', effects: { maxHp: 15 } },
+            { id: 'a_c_def', description: '방어력 +2', effects: { defense: 2 } },
+        ],
+        uncommon: [
+            { id: 'a_u_hp', description: '최대 HP +30', effects: { maxHp: 30 } },
+            { id: 'a_u_def', description: '방어력 +4', effects: { defense: 4 } },
+            { id: 'a_u_evade', description: '회피 +1%', effects: { evadeChance: 0.01 } },
+        ],
+        rare: [
+            { id: 'a_r_hp', description: '최대 HP +50', effects: { maxHp: 50 } },
+            { id: 'a_r_def', description: '방어력 +7', effects: { defense: 7 } },
+            { id: 'a_r_evade', description: '회피 +2%', effects: { evadeChance: 0.02 } },
+        ]
+    }
+};
+
 const QUEST_POOL: {type: QuestType, description: (target: number) => string, targets: number[], reward: Quest['reward']}[] = [
     { type: 'KILL_MONSTERS', description: (n) => `몬스터 ${n}마리 처치`, targets: [10, 15, 20], reward: { gold: 150, stones: 3 } },
     { type: 'CLEAR_DUNGEON', description: (n) => `던전 ${n}회 클리어`, targets: [1, 2], reward: { gold: 250, potions: 1 } },
@@ -264,7 +305,7 @@ let dailyQuests: Quest[] = [];
 let lastQuestDate: string = '';
 let shopFilterType: ItemSlot | 'all' = 'all';
 let shopFilterRarity: Rarity | 'all' = 'all';
-let blacksmithMode: 'enhance' | 'disenchant' = 'enhance';
+let blacksmithMode: 'enhance' | 'disenchant' | 'enchant' = 'enhance';
 
 
 const monsterList = [
@@ -301,6 +342,7 @@ function createItemInstance(itemId: number): EquipmentItem | null {
     // Deep copy to create a unique instance
     const newItem: EquipmentItem = JSON.parse(JSON.stringify(itemData));
     newItem.enhancementLevel = 0;
+    newItem.enchantment = null;
     return newItem;
 }
 
@@ -453,6 +495,7 @@ function initializeGame(chosenClass: keyof typeof CLASSES, playerName: string) {
     xpToNextLevel: 100,
     gold: difficultySettings.startGold,
     enhancementStones: 0,
+    enchantmentDust: 0,
     potions: difficultySettings.startPotions,
     ultimateSkillLevel: 1,
     ultimateSkillCooldown: 0,
@@ -485,14 +528,23 @@ function recalculatePlayerStats() {
     // Start with base stats
     const tempStats = { ...p.baseStats };
     
-    // Equipment
+    // Equipment stats and enchantments
     Object.values(p.equipment).forEach(item => {
         if (item) {
+            // Base stats
             Object.entries(item.stats).forEach(([stat, value]) => {
                 if (stat in tempStats) {
                     (tempStats[stat as keyof PlayerStats] as number) += value;
                 }
             });
+            // Enchantment stats
+            if (item.enchantment) {
+                 Object.entries(item.enchantment.effects).forEach(([stat, value]) => {
+                    if (stat in tempStats) {
+                        (tempStats[stat as keyof PlayerStats] as number) += value;
+                    }
+                });
+            }
         }
     });
 
@@ -689,6 +741,7 @@ function createCharacterCard(character: Character, isPlayer: boolean) {
                     <div class="gold-sp-display">
                         <p>💰 Gold: ${p.gold}</p>
                         <p>💎 Stones: ${p.enhancementStones}</p>
+                        <p>✨ Dust: ${p.enchantmentDust || 0}</p>
                     </div>
                 </div>
                  ${dungeonInfo}
@@ -1064,7 +1117,10 @@ function renderShopScreen() {
 
     const itemsHtml = filteredItems.map(item => `
         <div class="shop-item">
-            <span class="rarity-${item.rarity}">${item.name} (${item.type === 'weapon' ? '무기' : '방어구'})</span>
+            <div>
+                <span class="rarity-${item.rarity}">${item.name}</span>
+                <span class="item-class">(${item.classRestriction.join(', ')})</span>
+            </div>
             <button class="button buy-item-btn" data-item-id="${item.id}" ${player.gold < item.cost ? 'disabled' : ''}>${item.cost} G</button>
         </div>
     `).join('');
@@ -1088,7 +1144,11 @@ function renderShopScreen() {
     root.innerHTML = `
         <div class="screen-container shop-container">
             <h1>상점</h1>
-            <p class="gold-display">💰 Gold: ${player.gold}</p>
+             <div class="gold-sp-display top-display">
+                <p>💰 Gold: ${player.gold}</p>
+                <p>💎 Stones: ${player.enhancementStones}</p>
+                <p>✨ Dust: ${player.enchantmentDust || 0}</p>
+            </div>
             ${filtersHtml}
             <div class="shop-items">
                 <div class="shop-item">
@@ -1212,10 +1272,14 @@ function renderEquipmentScreen() {
             ? `<div class="sell-overlay">판매: ${getSellPrice(item)} G</div>` 
             : '';
 
+        const enchantmentHtml = item.enchantment ? `<p class="item-enchantment">✨ ${item.enchantment.description}</p>` : '';
+
         return `
             <div class="item-card rarity-${item.rarity} ${isRestricted ? 'restricted' : ''} ${isSellMode && slot === 'inventory' ? 'sellable' : ''}" data-slot="${slot}" data-item-id="${item.id}" ${index !== undefined ? `data-inventory-index="${index}"` : ''}>
                 <p class="item-name">${getItemDisplayName(item)}</p>
+                <p class="item-class">(${item.classRestriction.join(', ')})</p>
                 <p class="item-stats">${statsHtml}</p>
+                ${enchantmentHtml}
                 ${isRestricted ? `<div class="restricted-overlay">장착불가</div>` : ''}
                 ${sellOverlayHtml}
             </div>
@@ -1230,6 +1294,7 @@ function renderEquipmentScreen() {
             <div class="gold-sp-display top-display">
                 <p>💰 Gold: ${player.gold}</p>
                 <p>💎 Stones: ${player.enhancementStones}</p>
+                <p>✨ Dust: ${player.enchantmentDust || 0}</p>
             </div>
             <div class="equipment-slots">
                 <div class="slot-container">
@@ -1411,11 +1476,11 @@ function renderBlacksmithScreen() {
             <div class="enhancement-slots">
                 <div class="enhancement-slot" data-slot="weapon">
                     <h3>무기</h3>
-                    ${player.equipment.weapon ? createItemCardForEnhance(player.equipment.weapon) : '<div class="item-card empty">없음</div>'}
+                    ${player.equipment.weapon ? createItemCardForBlacksmith(player.equipment.weapon) : '<div class="item-card empty">없음</div>'}
                 </div>
                 <div class="enhancement-slot" data-slot="armor">
                     <h3>방어구</h3>
-                    ${player.equipment.armor ? createItemCardForEnhance(player.equipment.armor) : '<div class="item-card empty">없음</div>'}
+                    ${player.equipment.armor ? createItemCardForBlacksmith(player.equipment.armor) : '<div class="item-card empty">없음</div>'}
                 </div>
             </div>
             <div id="enhancement-details">
@@ -1434,41 +1499,60 @@ function renderBlacksmithScreen() {
         `;
     };
 
+    const renderEnchantContent = () => {
+        return `
+            <div class="enhancement-slots">
+                <div class="enhancement-slot" data-slot="weapon">
+                    <h3>무기</h3>
+                    ${player.equipment.weapon ? createItemCardForBlacksmith(player.equipment.weapon) : '<div class="item-card empty">없음</div>'}
+                </div>
+                <div class="enhancement-slot" data-slot="armor">
+                    <h3>방어구</h3>
+                    ${player.equipment.armor ? createItemCardForBlacksmith(player.equipment.armor) : '<div class="item-card empty">없음</div>'}
+                </div>
+            </div>
+            <div id="enhancement-details">
+                <p>마법 부여할 장비를 선택하세요.</p>
+            </div>
+        `;
+    }
+
     root.innerHTML = `
         <div class="screen-container blacksmith-screen">
             <h1>대장간</h1>
             <div class="gold-sp-display top-display">
                 <p>💰 Gold: ${player.gold}</p>
                 <p>💎 Stones: ${player.enhancementStones}</p>
+                <p>✨ Dust: ${player.enchantmentDust || 0}</p>
             </div>
             <div class="blacksmith-tabs">
                 <button id="tab-enhance" class="tab-button ${blacksmithMode === 'enhance' ? 'active' : ''}">강화</button>
                 <button id="tab-disenchant" class="tab-button ${blacksmithMode === 'disenchant' ? 'active' : ''}">분해</button>
+                <button id="tab-enchant" class="tab-button ${blacksmithMode === 'enchant' ? 'active' : ''}">마법 부여</button>
             </div>
             <div id="blacksmith-content">
-                ${blacksmithMode === 'enhance' ? renderEnhanceContent() : renderDisenchantContent()}
+                ${blacksmithMode === 'enhance' ? renderEnhanceContent() : (blacksmithMode === 'disenchant' ? renderDisenchantContent() : renderEnchantContent())}
             </div>
             <button id="back-to-town" class="button">마을로 돌아가기</button>
         </div>
     `;
 
-    document.getElementById('tab-enhance')?.addEventListener('click', () => {
-        blacksmithMode = 'enhance';
-        renderBlacksmithScreen();
-    });
-    document.getElementById('tab-disenchant')?.addEventListener('click', () => {
-        blacksmithMode = 'disenchant';
-        renderBlacksmithScreen();
-    });
+    document.getElementById('tab-enhance')?.addEventListener('click', () => { blacksmithMode = 'enhance'; renderBlacksmithScreen(); });
+    document.getElementById('tab-disenchant')?.addEventListener('click', () => { blacksmithMode = 'disenchant'; renderBlacksmithScreen(); });
+    document.getElementById('tab-enchant')?.addEventListener('click', () => { blacksmithMode = 'enchant'; renderBlacksmithScreen(); });
 
-    if (blacksmithMode === 'enhance') {
+    if (blacksmithMode === 'enhance' || blacksmithMode === 'enchant') {
         document.querySelectorAll('.enhancement-slot').forEach(slot => {
             slot.addEventListener('click', () => {
                 const slotType = slot.getAttribute('data-slot') as ItemSlot;
-                renderEnhancementDetails(slotType);
+                if (blacksmithMode === 'enhance') {
+                    renderEnhancementDetails(slotType);
+                } else {
+                    renderEnchantDetails(slotType);
+                }
             });
         });
-    } else {
+    } else { // disenchant
         document.querySelectorAll('.item-card.disenchantable').forEach(card => {
             card.addEventListener('click', handleDisenchantItemClick);
         });
@@ -1478,7 +1562,7 @@ function renderBlacksmithScreen() {
 }
 
 
-function createItemCardForEnhance(item: EquipmentItem) {
+function createItemCardForBlacksmith(item: EquipmentItem) {
     const statsHtml = Object.entries(item.stats).map(([stat, value]) => {
         let statName = '';
         switch(stat) {
@@ -1491,10 +1575,14 @@ function createItemCardForEnhance(item: EquipmentItem) {
         return `${statName} +${value}`;
     }).join(', ');
 
+    const enchantmentHtml = item.enchantment ? `<p class="item-enchantment">✨ ${item.enchantment.description}</p>` : '';
+
     return `
         <div class="item-card rarity-${item.rarity}">
             <p class="item-name">${getItemDisplayName(item)}</p>
+            <p class="item-class">(${item.classRestriction.join(', ')})</p>
             <p class="item-stats">${statsHtml}</p>
+            ${enchantmentHtml}
         </div>
     `;
 }
@@ -1615,10 +1703,22 @@ function handleEnhance(slot: ItemSlot) {
 
 // --- Disenchant System ---
 
-function getDisenchantYield(item: EquipmentItem): number {
-    const rarityBonus = item.rarity === 'rare' ? 7 : item.rarity === 'uncommon' ? 3 : 1;
-    const levelBonus = Math.floor(rarityBonus * item.enhancementLevel * 0.75);
-    return rarityBonus + levelBonus;
+function getDisenchantYield(item: EquipmentItem): { stones: number, dust: number } {
+    let rarityBonusStones = 1, rarityBonusDust = 1;
+    if (item.rarity === 'uncommon') {
+        rarityBonusStones = 3;
+        rarityBonusDust = 5;
+    } else if (item.rarity === 'rare') {
+        rarityBonusStones = 7;
+        rarityBonusDust = 15;
+    }
+    const levelBonusStones = Math.floor(rarityBonusStones * item.enhancementLevel * 0.75);
+    const levelBonusDust = Math.floor(rarityBonusDust * item.enhancementLevel * 0.5);
+
+    return {
+        stones: rarityBonusStones + levelBonusStones,
+        dust: rarityBonusDust + levelBonusDust,
+    };
 }
 
 function handleDisenchantItemClick(event: MouseEvent) {
@@ -1630,43 +1730,126 @@ function handleDisenchantItemClick(event: MouseEvent) {
     const item = player.inventory[index];
     if (!item) return;
 
-    const yieldAmount = getDisenchantYield(item);
-    const confirmationMessage = `정말로 '${getItemDisplayName(item)}'을(를) 분해하여 강화석 💎${yieldAmount}개를 얻으시겠습니까? 이 행동은 되돌릴 수 없습니다.`;
+    const { stones, dust } = getDisenchantYield(item);
+    const confirmationMessage = `정말로 '${getItemDisplayName(item)}'을(를) 분해하여 강화석 💎${stones}개와 마법 부여 가루 ✨${dust}개를 얻으시겠습니까? 이 행동은 되돌릴 수 없습니다.`;
 
     if (confirm(confirmationMessage)) {
-        player.enhancementStones += yieldAmount;
+        player.enhancementStones += stones;
+        player.enchantmentDust += dust;
         const disenchantedItemName = getItemDisplayName(item);
         player.inventory.splice(index, 1);
-        addMessage(`🔮 ${disenchantedItemName}을(를) 분해하여 강화석 💎${yieldAmount}개를 얻었습니다.`);
+        addMessage(`🔮 ${disenchantedItemName}을(를) 분해하여 💎${stones}개와 ✨${dust}개를 얻었습니다.`);
         saveGameState();
         renderBlacksmithScreen();
     }
 }
 
 function createItemCardForDisenchant(item: EquipmentItem, index: number) {
-        const statsHtml = Object.entries(item.stats).map(([stat, value]) => {
-            let statName = '';
-            switch(stat) {
-                case 'maxHp': statName = 'HP'; break;
-                case 'attackPower': statName = 'ATK'; break;
-                case 'defense': statName = 'DEF'; break;
-                case 'critChance': statName = '치명타'; value = (value as number) * 100; return `${statName} +${value.toFixed(0)}%`;
-                case 'evadeChance': statName = '회피'; value = (value as number) * 100; return `${statName} +${value.toFixed(0)}%`;
-            }
-            return `${statName} +${value}`;
-        }).join(', ');
+    const statsHtml = Object.entries(item.stats).map(([stat, value]) => {
+        let statName = '';
+        switch(stat) {
+            case 'maxHp': statName = 'HP'; break;
+            case 'attackPower': statName = 'ATK'; break;
+            case 'defense': statName = 'DEF'; break;
+            case 'critChance': statName = '치명타'; value = (value as number) * 100; return `${statName} +${value.toFixed(0)}%`;
+            case 'evadeChance': statName = '회피'; value = (value as number) * 100; return `${statName} +${value.toFixed(0)}%`;
+        }
+        return `${statName} +${value}`;
+    }).join(', ');
 
-        const yieldAmount = getDisenchantYield(item);
-        const disenchantOverlayHtml = `<div class="disenchant-overlay">분해 시: 💎 ${yieldAmount}</div>`;
+    const { stones, dust } = getDisenchantYield(item);
+    const disenchantOverlayHtml = `<div class="disenchant-overlay">분해 시: 💎 ${stones} / ✨ ${dust}</div>`;
+    const enchantmentHtml = item.enchantment ? `<p class="item-enchantment">✨ ${item.enchantment.description}</p>` : '';
 
-        return `
-            <div class="item-card rarity-${item.rarity} disenchantable" data-inventory-index="${index}">
-                <p class="item-name">${getItemDisplayName(item)}</p>
-                <p class="item-stats">${statsHtml}</p>
-                ${disenchantOverlayHtml}
+    return `
+        <div class="item-card rarity-${item.rarity} disenchantable" data-inventory-index="${index}">
+            <p class="item-name">${getItemDisplayName(item)}</p>
+            <p class="item-class">(${item.classRestriction.join(', ')})</p>
+            <p class="item-stats">${statsHtml}</p>
+            ${enchantmentHtml}
+            ${disenchantOverlayHtml}
+        </div>
+    `;
+};
+
+// --- Enchantment System ---
+
+function getEnchantmentCost(item: EquipmentItem): { gold: number, dust: number } {
+    let gold = 100, dust = 10;
+    if (item.rarity === 'uncommon') {
+        gold = 300;
+        dust = 30;
+    } else if (item.rarity === 'rare') {
+        gold = 800;
+        dust = 75;
+    }
+    return { gold, dust };
+}
+
+function renderEnchantDetails(slot: ItemSlot) {
+    const detailsContainer = document.getElementById('enhancement-details');
+    if (!detailsContainer) return;
+
+    const item = player.equipment[slot];
+    if (!item) {
+        detailsContainer.innerHTML = `<p>마법 부여할 장비가 없습니다.</p>`;
+        return;
+    }
+
+    const { gold, dust } = getEnchantmentCost(item);
+    
+    const currentEnchantmentHtml = item.enchantment 
+        ? `<p class="current-enchantment">현재 효과: ${item.enchantment.description}</p><p class="enchant-warning">마법 부여 시 현재 효과가 새로운 무작위 효과로 변경됩니다.</p>`
+        : '<p>현재 부여된 마법 효과가 없습니다.</p>';
+
+    detailsContainer.innerHTML = `
+        <h3>${getItemDisplayName(item)}</h3>
+        ${currentEnchantmentHtml}
+        <div class="enhancement-info">
+            <div class="info-row">
+                <span>마법 부여 비용:</span>
+                <span class="cost-display">${gold} G / ${dust} ✨</span>
             </div>
-        `;
-    };
+        </div>
+        <button id="enchant-button" class="button" ${player.gold < gold || player.enchantmentDust < dust ? 'disabled' : ''}>마법 부여</button>
+    `;
+    document.getElementById('enchant-button')?.addEventListener('click', () => handleEnchant(slot));
+}
+
+function handleEnchant(slot: ItemSlot) {
+    const item = player.equipment[slot];
+    if (!item) return;
+
+    const { gold, dust } = getEnchantmentCost(item);
+    if (player.gold < gold || player.enchantmentDust < dust) return;
+
+    const confirmMsg = item.enchantment 
+        ? '이미 마법 부여가 된 아이템입니다. 새로운 효과로 덮어쓰시겠습니까?'
+        : '이 장비에 마법을 부여하시겠습니까?';
+
+    if (confirm(confirmMsg)) {
+        player.gold -= gold;
+        player.enchantmentDust -= dust;
+
+        const pool = ENCHANTMENT_POOL[item.type][item.rarity];
+        const newEnchantment = pool[Math.floor(Math.random() * pool.length)];
+        item.enchantment = newEnchantment;
+
+        alert(`✨ 마법 부여 성공! [${newEnchantment.description}] 효과를 얻었습니다.`);
+
+        const previousMaxHp = player.maxHp;
+        recalculatePlayerStats();
+        const hpChange = player.maxHp - previousMaxHp;
+        player.hp += hpChange;
+        player.hp = Math.min(player.hp, player.maxHp);
+        if (player.hp <= 0) player.hp = 1;
+
+        saveGameState();
+        renderBlacksmithScreen();
+        renderEnchantDetails(slot);
+    }
+}
+
 
 // --- Skill Tree System ---
 function isSkillLearnable(skill: Skill): boolean {
@@ -1925,6 +2108,14 @@ function loadGameState(): boolean {
             if (!player.activeBuffs) player.activeBuffs = [];
             if (!player.statusEffects) player.statusEffects = [];
             if (!player.equipment) player.equipment = { weapon: null, armor: null };
+            if (!player.enchantmentDust) player.enchantmentDust = 0;
+
+            // Add enchantment property to existing items if missing
+            [...player.inventory, player.equipment.weapon, player.equipment.armor].forEach(item => {
+                if(item && item.enchantment === undefined) {
+                    item.enchantment = null;
+                }
+            });
 
             // Ensure baseStats exist (critical for recalculation)
             if (!player.baseStats) {
