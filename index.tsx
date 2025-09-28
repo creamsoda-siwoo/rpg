@@ -1907,21 +1907,51 @@ function loadGameState(): boolean {
     if (savedState) {
         try {
             const gameState = JSON.parse(savedState);
+            // Basic validation
+            if (!gameState.player || !gameState.player.className || !CLASSES[gameState.player.className]) {
+                throw new Error("Invalid or corrupted player data in save file.");
+            }
+
             player = gameState.player;
             dungeonLevel = gameState.dungeonLevel;
             currentDifficulty = gameState.currentDifficulty;
+            
+            // --- Start of Save File Migration / Polyfill ---
             dailyQuests = gameState.dailyQuests || [];
             lastQuestDate = gameState.lastQuestDate || '';
-            
-            // Backwards compatibility for saves without unlockedSkills
-            if (!player.unlockedSkills) {
-                player.unlockedSkills = {};
+
+            if (!player.unlockedSkills) player.unlockedSkills = {};
+            if (!player.inventory) player.inventory = [];
+            if (!player.activeBuffs) player.activeBuffs = [];
+            if (!player.statusEffects) player.statusEffects = [];
+            if (!player.equipment) player.equipment = { weapon: null, armor: null };
+
+            // Ensure baseStats exist (critical for recalculation)
+            if (!player.baseStats) {
+                const classData = CLASSES[player.className];
+                player.baseStats = {
+                    maxHp: classData.baseHp,
+                    attackPower: classData.baseAtk,
+                    defense: classData.baseDef,
+                    critChance: classData.crit,
+                    evadeChance: classData.evade,
+                };
             }
+            // --- End of Save File Migration ---
 
             messageLog = ['게임 데이터를 불러왔습니다.'];
+            
+            // Crucial: Recalculate all derived stats after loading and migrating.
+            recalculatePlayerStats();
+            
+            // Ensure HP is valid after recalculation.
+            if (player.hp > player.maxHp || player.hp === undefined || player.hp === null) {
+                player.hp = player.maxHp;
+            }
+
             return true;
         } catch (error) {
-            console.error("Failed to parse saved game state:", error);
+            console.error("Failed to parse or migrate saved game state:", error);
             localStorage.removeItem('rpg_save');
             return false;
         }
