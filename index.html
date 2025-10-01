@@ -916,6 +916,145 @@
         font-size: 0.8rem;
         margin: 0;
     }
+
+    /* Guide Button & Modal Styles */
+    #guide-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background-color: var(--skill-learnable-bg);
+        color: var(--primary-bg);
+        border-radius: 50%;
+        border: none;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1001;
+        transition: transform 0.2s;
+    }
+    #guide-button:hover {
+        transform: scale(1.1);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none; /* Initially hidden */
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    .modal-content {
+        background-color: var(--primary-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 500px;
+        height: 90%;
+        max-height: 700px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .modal-content h2 {
+        color: var(--xp-bar-color);
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .modal-body {
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .modal-body h3 {
+        color: var(--skill-learnable-bg);
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .modal-body p, .modal-body li {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        color: var(--text-color);
+    }
+    .modal-body ul {
+        padding-left: 1.2rem;
+    }
+
+    .modal-footer {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    /* Dungeon Map Styles */
+    .dungeon-map {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 0.8rem;
+      padding: 0.4rem;
+      background-color: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .map-node {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: var(--secondary-bg);
+      border: 2px solid var(--border-color);
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      transition: all 0.3s;
+    }
+    .map-node.cleared {
+      background-color: var(--button-disabled-bg);
+      border-color: var(--secondary-bg);
+    }
+    .map-node.current {
+      background-color: var(--player-hp-color);
+      border-color: var(--text-color);
+      transform: scale(1.2);
+      box-shadow: 0 0 8px var(--player-hp-color);
+    }
+    .map-node.boss {
+      background-color: var(--monster-hp-color);
+      border-color: #ff7675;
+      transform: scale(1.3);
+    }
+    .map-node.boss.current {
+        transform: scale(1.5);
+        box-shadow: 0 0 10px var(--monster-hp-color);
+    }
+    .map-connector {
+      flex-grow: 1;
+      height: 2px;
+      background-color: var(--border-color);
+      max-width: 15px;
+    }
   </style>
 </head>
 <body>
@@ -1119,6 +1258,7 @@
     let shopFilterRarity = 'all';
     let blacksmithMode = 'enhance';
     let questScreenMode = 'daily';
+    let guideElementsRendered = false;
     
     let survivalWave = 0;
 
@@ -1138,6 +1278,91 @@
         { name: '드래곤', emoji: '🐲', baseHp: 270, baseAttack: 34, xp: 600, gold: 300, lootTable: [301, 302], onHitEffect: {type: 'burn', chance: 0.7, duration: 3, potency: 15} },
     ];
 
+    function removeGuideElements() {
+        document.getElementById('guide-button')?.remove();
+        document.getElementById('guide-modal')?.remove();
+        guideElementsRendered = false;
+    }
+
+    function renderGuideElements() {
+        if (guideElementsRendered) return;
+
+        const guideButton = document.createElement('button');
+        guideButton.id = 'guide-button';
+        guideButton.textContent = '❓';
+        guideButton.title = '초보자 가이드';
+
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'guide-modal';
+        modalOverlay.className = 'modal-overlay';
+        modalOverlay.innerHTML = `
+            <div class="modal-content">
+                <h2>초보자 가이드</h2>
+                <div class="modal-body">
+                    <h3>게임 목표</h3>
+                    <p>던전에 입장하여 몬스터를 처치하고, 더 좋은 장비를 획득하여 캐릭터를 성장시키세요. 최종 목표는 더 높은 레벨의 던전을 클리어하고, 환생을 통해 영구적으로 강해지는 것입니다.</p>
+                    
+                    <h3>전투</h3>
+                    <ul>
+                        <li><strong>공격:</strong> 기본 공격으로 몬스터에게 피해를 줍니다.</li>
+                        <li><strong>물약:</strong> 체력을 회복합니다. 상점에서 구매할 수 있습니다.</li>
+                        <li><strong>특수 기술:</strong> 직업마다 고유의 강력한 기술을 사용합니다. 사용 후에는 재사용 대기시간이 있습니다.</li>
+                        <li><strong>상태 이상:</strong> 독, 화상, 기절 등 다양한 효과가 전투에 영향을 줍니다. 몬스터와 플레이어 모두에게 적용될 수 있습니다.</li>
+                    </ul>
+
+                    <h3>성장과 장비</h3>
+                    <ul>
+                        <li><strong>레벨업:</strong> 몬스터를 처치하여 경험치(XP)를 얻고 레벨을 올립니다.</li>
+                        <li><strong>장비 등급:</strong> 일반(흰색) &lt; 고급(초록색) &lt; 희귀(파란색) &lt; 전설(주황색) 순으로 강력합니다.</li>
+                        <li><strong>장비 관리:</strong> '장비' 메뉴에서 아이템을 장착하거나 판매할 수 있습니다.</li>
+                    </ul>
+
+                    <h3>대장간</h3>
+                    <ul>
+                        <li><strong>강화:</strong> 골드와 강화석을 사용하여 장비의 기본 능력치를 올립니다. 강화 레벨이 높을수록 성공 확률이 감소하며, 실패 시 패널티가 있을 수 있습니다.</li>
+                        <li><strong>분해:</strong> 필요 없는 장비를 분해하여 강화석과 마법 부여 가루를 얻습니다.</li>
+                        <li><strong>마법 부여:</strong> 마법 부여 가루와 골드를 사용하여 장비에 무작위 추가 옵션을 부여합니다.</li>
+                    </ul>
+
+                    <h3>스킬과 환생</h3>
+                    <ul>
+                        <li><strong>스킬 트리:</strong> 골드를 사용하여 직업별 패시브 스킬을 배워 캐릭터를 특화시킬 수 있습니다.</li>
+                        <li><strong>환생:</strong> 30레벨에 도달하면 환생이 가능합니다. 레벨, 골드 등이 초기화되지만, '환생 포인트(RP)'를 얻어 영구적인 능력치를 올릴 수 있습니다. 장비와 아이템은 유지됩니다.</li>
+                    </ul>
+
+                    <h3>기타 콘텐츠</h3>
+                    <ul>
+                        <li><strong>퀘스트:</strong> 일일/영구 퀘스트를 완료하고 보상을 받으세요.</li>
+                        <li><strong>서바이벌 던전:</strong> 끝없이 몰려오는 몬스터를 상대로 최대한 오래 버티고 '생존 토큰'을 모아 특별한 장신구를 구매하세요.</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button id="close-guide-button" class="button">닫기</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(guideButton);
+        document.body.appendChild(modalOverlay);
+
+        guideButton.addEventListener('click', () => {
+            modalOverlay.style.display = 'flex';
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('close-guide-button')?.addEventListener('click', () => {
+            modalOverlay.style.display = 'none';
+        });
+        
+        guideElementsRendered = true;
+    }
+
+
     function createStartScreen() {
       currentScreen = 'START';
       root.innerHTML = `
@@ -1148,6 +1373,7 @@
         </div>
       `;
       document.getElementById('start-button')?.addEventListener('click', createDifficultySelectionScreen);
+      renderGuideElements();
     }
 
     function createItemInstance(itemId) {
@@ -1189,6 +1415,7 @@
                 createClassSelectionScreen();
             });
         });
+        renderGuideElements();
     }
 
     function renderDifficultyChangeScreen() {
@@ -1252,6 +1479,7 @@
                 }
             });
         });
+        renderGuideElements();
     }
 
     function createClassChangeScreen() {
@@ -1315,6 +1543,7 @@
     }
 
     function initializeGame(chosenClass, playerName) {
+      removeGuideElements();
       dungeonLevel = 1;
 
       const classData = CLASSES[chosenClass];
@@ -1448,6 +1677,7 @@
     }
 
     function renderTownScreen() {
+        removeGuideElements();
         currentScreen = 'TOWN';
         const canAffordClassChange = player.gold >= CLASS_CHANGE_COST;
         const hasClaimableQuests = dailyQuests.some(q => q.isComplete && !q.isClaimed) || player.permanentQuests.some(q => q.isComplete && !q.isClaimed);
@@ -1455,7 +1685,7 @@
 
         root.innerHTML = `
             <div class="screen-container town-screen">
-                <p>현재 도전할 던전: ${dungeonLevel} 레벨 (환생: ${player.rebirths}회)</p>
+                <p>현재 도전할 던전: ${dungeonLevel} 레벨 (환생: ${player.rebirths}회) | 난이도: ${currentDifficulty}</p>
                 ${createCharacterCard(player, true)}
                 <div id="action-buttons" class="town-actions">
                     <button data-action="dungeon" class="button">던전 입장</button>
@@ -1621,17 +1851,42 @@
         `;
     }
 
-    function renderDungeonScreen() {
+    function createDungeonMapHTML() {
+        const totalFloors = getFloorsForDungeon(dungeonLevel);
+        let mapHtml = '<div class="dungeon-map">';
+        for (let i = 1; i <= totalFloors; i++) {
+            const isBoss = i === totalFloors;
+            const isCurrent = i === dungeonFloor;
+            const isCleared = i < dungeonFloor;
+            
+            let nodeClass = 'map-node';
+            if (isCleared) nodeClass += ' cleared';
+            if (isCurrent) nodeClass += ' current';
+            if (isBoss) nodeClass += ' boss';
+            
+            const emoji = isBoss ? '👑' : '';
+            
+            mapHtml += `<div class="${nodeClass}" title="Floor ${i}">${emoji}</div>`;
+            if (i < totalFloors) {
+                mapHtml += '<div class="map-connector"></div>';
+            }
+        }
+        mapHtml += '</div>';
+        return mapHtml;
+    }
+
+    function renderDungeonScreen(isBattleOver = false) {
         if (currentScreen !== 'TOWN' && currentScreen !== 'DUNGEON') return;
         currentScreen = 'DUNGEON';
         
         const ultimateSkill = ULTIMATE_SKILLS[player.className];
         const cooldown = player.ultimateSkillCooldown;
-        const disabled = cooldown > 0;
-        const skillButton = `<button data-action="ultimate" class="button skill-button" ${disabled ? 'disabled' : ''}>${ultimateSkill.name} ${disabled ? `(${cooldown})` : ''}</button>`;
+        const disabled = cooldown > 0 || isBattleOver;
+        const skillButton = `<button data-action="ultimate" class="button skill-button" ${disabled ? 'disabled' : ''}>${ultimateSkill.name} ${disabled && !isBattleOver ? `(${cooldown})` : ''}</button>`;
 
         root.innerHTML = `
             <div id="game-world">
+                ${createDungeonMapHTML()}
                 ${createCharacterCard(monster, false)}
                 ${createCharacterCard(player, true)}
             </div>
@@ -1639,10 +1894,10 @@
                 ${messageLog.map(msg => `<p>${msg}</p>`).join('')}
             </div>
             <div id="action-buttons">
-                <button data-action="attack" class="button">공격</button>
-                <button data-action="potion" class="button" ${player.potions <= 0 ? 'disabled' : ''}>물약 (${player.potions})</button>
+                <button data-action="attack" class="button" ${isBattleOver ? 'disabled' : ''}>공격</button>
+                <button data-action="potion" class="button" ${player.potions <= 0 || isBattleOver ? 'disabled' : ''}>물약 (${player.potions})</button>
                 ${skillButton}
-                <button data-action="escape" class="button">탈출</button>
+                <button data-action="escape" class="button" ${isBattleOver ? 'disabled' : ''}>탈출</button>
             </div>
         `;
 
@@ -1890,10 +2145,13 @@
             levelUp();
         }
 
+        saveGameState();
+
         if (isBossFloor) {
             renderDungeonClearScreen();
         } else {
-            renderNextFloorScreen();
+            renderDungeonScreen(true); // Re-render with buttons disabled
+            setTimeout(continueDungeon, 1200);
         }
     }
 
@@ -1909,20 +2167,6 @@
         player.hp += hpGain;
         player.hp = Math.min(player.hp, player.maxHp);
         saveGameState();
-    }
-
-    function renderNextFloorScreen() {
-        saveGameState();
-        root.innerHTML = `
-            <div class="screen-container">
-                <h1>전투 승리!</h1>
-                <p>던전의 다음 층으로 이동합니다.</p>
-                <div id="action-buttons" class="town-actions">
-                    <button id="continue-button" class="button">다음 층으로</button>
-                </div>
-            </div>
-        `;
-        document.getElementById('continue-button')?.addEventListener('click', continueDungeon);
     }
 
     function continueDungeon() {
