@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>간단RPG</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
   <style>
     :root {
       --primary-bg: #2c3e50;
@@ -123,6 +124,15 @@
     h1 {
       margin-bottom: 0.8rem;
       font-size: 2rem;
+    }
+
+    .logo {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: var(--skill-learnable-bg);
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5), 0 0 10px var(--rarity-legendary);
+        margin-bottom: 1.5rem;
+        letter-spacing: 2px;
     }
 
     p {
@@ -1160,41 +1170,41 @@
 
     const ITEM_DATABASE = [
         // Common
-        { id: 101, name: "녹슨 검", type: 'weapon', stats: { attackPower: 2 }, rarity: 'common', cost: 20, classRestriction: ['전사'] },
-        { id: 102, name: "해진 로브", type: 'armor', stats: { maxHp: 10 }, rarity: 'common', cost: 20, classRestriction: ['마법사'] },
+        { id: 101, name: "녹슨 검", type: 'weapon', stats: { attackPower: 2 }, rarity: 'common', cost: 25, classRestriction: ['전사'] },
+        { id: 102, name: "해진 로브", type: 'armor', stats: { maxHp: 10 }, rarity: 'common', cost: 25, classRestriction: ['마법사'] },
         { id: 103, name: "가죽 갑옷", type: 'armor', stats: { defense: 1, evadeChance: 0.01 }, rarity: 'common', cost: 25, classRestriction: ['도적'] },
         { id: 104, name: "나무 지팡이", type: 'weapon', stats: { attackPower: 3 }, rarity: 'common', cost: 25, classRestriction: ['마법사'] },
-        { id: 105, name: "작은 단검", type: 'weapon', stats: { attackPower: 1, critChance: 0.02 }, rarity: 'common', cost: 30, classRestriction: ['도적'] },
-        { id: 106, name: "판금 조끼", type: 'armor', stats: { defense: 2 }, rarity: 'common', cost: 30, classRestriction: ['전사'] },
+        { id: 105, name: "작은 단검", type: 'weapon', stats: { attackPower: 1, critChance: 0.02 }, rarity: 'common', cost: 25, classRestriction: ['도적'] },
+        { id: 106, name: "판금 조끼", type: 'armor', stats: { defense: 2 }, rarity: 'common', cost: 25, classRestriction: ['전사'] },
 
         // Uncommon
-        { id: 201, name: "강철 검", type: 'weapon', stats: { attackPower: 5 }, rarity: 'uncommon', cost: 80, classRestriction: ['전사'] },
-        { id: 202, name: "마법사의 로브", type: 'armor', stats: { maxHp: 20, attackPower: 2 }, rarity: 'uncommon', cost: 90, classRestriction: ['마법사'] },
+        { id: 201, name: "강철 검", type: 'weapon', stats: { attackPower: 5 }, rarity: 'uncommon', cost: 100, classRestriction: ['전사'] },
+        { id: 202, name: "마법사의 로브", type: 'armor', stats: { maxHp: 20, attackPower: 2 }, rarity: 'uncommon', cost: 100, classRestriction: ['마법사'] },
         { id: 203, name: "그림자 사슬 갑옷", type: 'armor', stats: { defense: 2, maxHp: 10, evadeChance: 0.03 }, rarity: 'uncommon', cost: 100, classRestriction: ['도적'] },
         { id: 204, name: "보석 박힌 지팡이", type: 'weapon', stats: { attackPower: 6 }, rarity: 'uncommon', cost: 100, classRestriction: ['마법사'] },
-        { id: 205, name: "암살자의 단검", type: 'weapon', stats: { attackPower: 3, critChance: 0.05 }, rarity: 'uncommon', cost: 110, classRestriction: ['도적'] },
-        { id: 206, name: "강철 갑옷", type: 'armor', stats: { defense: 4, maxHp: 25 }, rarity: 'uncommon', cost: 120, classRestriction: ['전사'] },
+        { id: 205, name: "암살자의 단검", type: 'weapon', stats: { attackPower: 3, critChance: 0.05 }, rarity: 'uncommon', cost: 100, classRestriction: ['도적'] },
+        { id: 206, name: "강철 갑옷", type: 'armor', stats: { defense: 4, maxHp: 25 }, rarity: 'uncommon', cost: 100, classRestriction: ['전사'] },
         
         // Rare
-        { id: 301, name: "룬 블레이드", type: 'weapon', stats: { attackPower: 8, critChance: 0.03 }, rarity: 'rare', cost: 250, classRestriction: ['전사'] },
+        { id: 301, name: "룬 블레이드", type: 'weapon', stats: { attackPower: 8, critChance: 0.03 }, rarity: 'rare', cost: 300, classRestriction: ['전사'] },
         { id: 302, name: "대마법사의 로브", type: 'armor', stats: { maxHp: 30, attackPower: 5, defense: 1 }, rarity: 'rare', cost: 300, classRestriction: ['마법사'] },
-        { id: 303, name: "기사의 갑옷", type: 'armor', stats: { defense: 5, maxHp: 40 }, rarity: 'rare', cost: 320, classRestriction: ['전사'] },
-        { id: 304, name: "현자의 지팡이", type: 'weapon', stats: { attackPower: 10, maxHp: 20 }, rarity: 'rare', cost: 280, classRestriction: ['마법사'] },
-        { id: 305, name: "독사의 송곳니", type: 'weapon', stats: { attackPower: 7, critChance: 0.07 }, rarity: 'rare', cost: 270, classRestriction: ['도적'] },
-        { id: 306, name: "밤의 장막 갑옷", type: 'armor', stats: { defense: 3, evadeChance: 0.05, maxHp: 20 }, rarity: 'rare', cost: 310, classRestriction: ['도적'] },
+        { id: 303, name: "기사의 갑옷", type: 'armor', stats: { defense: 5, maxHp: 40 }, rarity: 'rare', cost: 300, classRestriction: ['전사'] },
+        { id: 304, name: "현자의 지팡이", type: 'weapon', stats: { attackPower: 10, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['마법사'] },
+        { id: 305, name: "독사의 송곳니", type: 'weapon', stats: { attackPower: 7, critChance: 0.07 }, rarity: 'rare', cost: 300, classRestriction: ['도적'] },
+        { id: 306, name: "밤의 장막 갑옷", type: 'armor', stats: { defense: 3, evadeChance: 0.05, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['도적'] },
         
         // Legendary
         { id: 401, name: "용살자의 대검", type: 'weapon', stats: { attackPower: 20, maxHp: 50 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사'] },
         { id: 402, name: "아크메이지의 지팡이", type: 'weapon', stats: { attackPower: 25 }, rarity: 'legendary', cost: 5000, classRestriction: ['마법사'] },
         { id: 403, name: "월광의 단검", type: 'weapon', stats: { attackPower: 15, critChance: 0.10, evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['도적'] },
-        { id: 404, name: "수호신의 갑주", type: 'armor', stats: { defense: 10, maxHp: 100 }, rarity: 'legendary', cost: 5500, classRestriction: ['전사', '도적', '마법사'] },
+        { id: 404, name: "수호신의 갑주", type: 'armor', stats: { defense: 10, maxHp: 100 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '도적', '마법사'] },
 
         // Accessories
-        { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 1000, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 502, name: "활력의 부적", type: 'accessory', stats: { maxHp: 50 }, rarity: 'rare', cost: 1000, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 503, "name": "수호의 징표", type: 'accessory', stats: { defense: 5 }, rarity: 'rare', cost: 1000, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 3000, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 3000, classRestriction: ['전사', '마법사', '도적'] },
+        { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적'] },
+        { id: 502, name: "활력의 부적", type: 'accessory', stats: { maxHp: 50 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적'] },
+        { id: 503, "name": "수호의 징표", type: 'accessory', stats: { defense: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적'] },
+        { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적'] },
+        { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적'] },
         { id: 506, "name": "현자의 돌", type: 'accessory', stats: { attackPower: 8, maxHp: 80 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적'] },
     ];
     
@@ -1220,7 +1230,7 @@
     const QUEST_POOL = [
         { type: 'KILL_MONSTERS', description: (n) => `몬스터 ${n}마리 처치`, targets: [10, 15, 20], reward: { gold: 150, stones: 3 } },
         { type: 'CLEAR_DUNGEON', description: (n) => `던전 ${n}회 클리어`, targets: [1, 2], reward: { gold: 250, potions: 1 } },
-        { type: 'ENHANCE_ATTEMPTS', description: (n) => `장비 강화 ${n}회 시도`, targets: [3, 5], reward: { stones: 5 } },
+        { type: 'ENHANCE_ATTEMPTS', description: (n) => `장비 강화 ${n}회 시도`, targets: [3, 5], reward: { gold: 200, stones: 5 } },
         { type: 'USE_ULTIMATE', description: (n) => `특수 기술 ${n}회 사용`, targets: [5, 8], reward: { gold: 100, potions: 1 } },
         { type: 'EARN_GOLD', description: (n) => `골드 ${n} 획득`, targets: [500, 1000], reward: { gold: 100, stones: 2 } },
     ];
@@ -1366,7 +1376,7 @@
       currentScreen = 'START';
       root.innerHTML = `
         <div class="screen-container">
-          <h1>간단RPG</h1>
+          <h1 class="logo">⚔️ 간단RPG 🛡️</h1>
           <p>직업을 선택하고, 장비를 강화하여 던전을 정복하세요!</p>
           <button id="start-button" class="button">게임 시작</button>
         </div>
