@@ -1220,6 +1220,55 @@
     input[type="checkbox"] {
         display: none;
     }
+
+    /* Permanent UI Styles */
+    #game-reset-button {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background-color: var(--monster-hp-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 1001;
+        transition: background-color 0.2s;
+    }
+    #game-reset-button:hover {
+        background-color: #c0392b;
+    }
+
+    #rank-display {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background-color: rgba(0,0,0,0.6);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        z-index: 1001;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    #rank-display span:first-child {
+        font-size: 0.8rem;
+        color: var(--text-color);
+    }
+    #rank-display span:last-child {
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+    .rank-C { color: #bdc3c7; }
+    .rank-B { color: var(--rarity-uncommon); }
+    .rank-A { color: var(--rarity-rare); }
+    .rank-S { color: var(--rarity-legendary); }
+    .rank-SS { color: var(--rarity-mythic); }
+    .rank-SSS { color: var(--disenchant-color); }
   </style>
 </head>
 <body>
@@ -1570,6 +1619,51 @@
         guideElementsRendered = false;
     }
 
+    function removePermanentUI() {
+        document.getElementById('game-reset-button')?.remove();
+        document.getElementById('rank-display')?.remove();
+    }
+
+    function getPlayerRank() {
+        if (!player) return { rank: 'C', colorClass: 'rank-C' };
+        if (player.rebirths >= 3 && player.isLiberated) return { rank: 'SSS', colorClass: 'rank-SSS' };
+        if (player.rebirths >= 3) return { rank: 'SS', colorClass: 'rank-SS' };
+        if (player.rebirths >= 2) return { rank: 'S', colorClass: 'rank-S' };
+        if (player.rebirths >= 1) return { rank: 'A', colorClass: 'rank-A' };
+        if (player.level >= 15) return { rank: 'B', colorClass: 'rank-B' };
+        return { rank: 'C', colorClass: 'rank-C' };
+    }
+
+    function renderPermanentUI() {
+        let resetButton = document.getElementById('game-reset-button');
+        if (!resetButton) {
+            resetButton = document.createElement('button');
+            resetButton.id = 'game-reset-button';
+            resetButton.textContent = '게임 초기화';
+            document.body.appendChild(resetButton);
+            resetButton.addEventListener('click', () => {
+                if (confirm('정말로 게임을 초기화하시겠습니까? 모든 진행 상황이 삭제되고 되돌릴 수 없습니다.')) {
+                    removePermanentUI();
+                    deleteSaveData(false);
+                    createStartScreen();
+                }
+            });
+        }
+
+        let rankDisplay = document.getElementById('rank-display');
+        if (!rankDisplay) {
+            rankDisplay = document.createElement('div');
+            rankDisplay.id = 'rank-display';
+            document.body.appendChild(rankDisplay);
+        }
+        
+        const { rank, colorClass } = getPlayerRank();
+        rankDisplay.innerHTML = `
+            <span>RANK</span>
+            <span class="${colorClass}">${rank}</span>
+        `;
+    }
+
     function renderGuideElements() {
         if (guideElementsRendered) return;
 
@@ -1653,6 +1747,7 @@
     function createStartScreen() {
         currentScreen = 'START';
         removeGuideElements();
+        removePermanentUI();
         const hasSaveData = !!localStorage.getItem('simpleRPG_saveData');
         
         root.innerHTML = `
@@ -1703,6 +1798,7 @@
     function createDifficultySelectionScreen() {
         currentScreen = 'DIFFICULTY_SELECTION';
         removeGuideElements();
+        removePermanentUI();
         root.innerHTML = `
             <div class="screen-container">
                  <h1 class="logo">⚔️ 간단RPG 🛡️</h1>
@@ -1735,6 +1831,7 @@
 
     function renderDifficultyChangeScreen() {
       currentScreen = 'DIFFICULTY_CHANGE';
+      renderPermanentUI();
       root.innerHTML = `
         <div class="screen-container">
           <h1>난이도 변경</h1>
@@ -1764,6 +1861,7 @@
 
     function createClassSelectionScreen() {
         currentScreen = 'CLASS_SELECTION';
+        removePermanentUI();
         root.innerHTML = `
             <div class="screen-container">
                 <h1>직업 선택</h1>
@@ -1802,6 +1900,7 @@
 
     function createClassChangeScreen() {
         currentScreen = 'CLASS_SELECTION';
+        renderPermanentUI();
         root.innerHTML = `
             <div class="screen-container">
                 <h1>직업 변경</h1>
@@ -2028,6 +2127,7 @@
 
     function renderTownScreen() {
         renderGuideElements();
+        renderPermanentUI();
         currentScreen = 'TOWN';
         const canAffordClassChange = player.gold >= CLASS_CHANGE_COST;
         const hasClaimableQuests = dailyQuests.some(q => q.isComplete && !q.isClaimed) || player.permanentQuests.some(q => q.isComplete && !q.isClaimed);
@@ -2246,6 +2346,7 @@
     function renderDungeonScreen(isBattleOver = false) {
         if (currentScreen !== 'TOWN' && currentScreen !== 'DUNGEON' && currentScreen !== 'SURVIVAL') return;
         currentScreen = 'DUNGEON';
+        renderPermanentUI();
         
         const ultimateSkill = ULTIMATE_SKILLS[player.className];
         const cooldown = player.ultimateSkillCooldown;
@@ -2673,6 +2774,7 @@
 
     function renderShopScreen() {
         currentScreen = 'SHOP';
+        renderPermanentUI();
         const itemsForSale = ITEM_DATABASE.filter(item => (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') && !item.isGachaOnly);
         
         const filteredItems = itemsForSale.filter(item => {
@@ -2800,6 +2902,7 @@
 
     function renderEquipmentScreen() {
         currentScreen = 'EQUIPMENT';
+        renderPermanentUI();
 
         const createItemCard = (item, slot, index) => {
             if (!item) {
@@ -3056,6 +3159,7 @@
 
     function renderBlacksmithScreen() {
         currentScreen = 'BLACKSMITH';
+        renderPermanentUI();
         synthesisSelection = synthesisSelection.filter(sel => sel && player.inventory[sel.inventoryIndex]);
         while (synthesisSelection.length < 2) synthesisSelection.push(null);
 
@@ -3676,6 +3780,7 @@
     
     function renderSkillTreeScreen() {
         currentScreen = 'SKILL_TREE';
+        renderPermanentUI();
         const classSkills = SKILL_DATA[player.className];
         
         const skillsHtml = Object.values(classSkills).map(skill => {
@@ -3832,6 +3937,7 @@
 
     function renderQuestScreen() {
         currentScreen = 'QUESTS';
+        renderPermanentUI();
         
         const renderQuests = (quests) => {
             return quests.map((quest, index) => {
@@ -3925,6 +4031,7 @@
     function renderRebirthScreen() {
         if (player.level < REBIRTH_LEVEL_REQ) return;
         currentScreen = 'REBIRTH';
+        renderPermanentUI();
         
         const pointsToGain = 1 + Math.floor(dungeonLevel / 5) + Math.floor(player.level / 10);
         
@@ -4048,6 +4155,7 @@
     
     function renderGachaScreen() {
         currentScreen = 'GACHA';
+        renderPermanentUI();
         root.innerHTML = `
             <div class="screen-container">
                 <h1>장비 뽑기</h1>
@@ -4195,6 +4303,7 @@
     
     function renderSurvivalDungeonScreen(isBattleOver = false) {
         currentScreen = 'SURVIVAL';
+        renderPermanentUI();
         // Re-use dungeon screen logic with slight modifications
         const ultimateSkill = ULTIMATE_SKILLS[player.className];
         const cooldown = player.ultimateSkillCooldown;
