@@ -1176,6 +1176,7 @@
         '전사': { emoji: '🛡️', baseHp: 160, baseAtk: 12, baseDef: 4, weapon: '검', crit: 0.1, evade: 0.05 },
         '마법사': { emoji: '🔥', baseHp: 110, baseAtk: 16, baseDef: 0, weapon: '지팡이', crit: 0.1, evade: 0.05 },
         '도적': { emoji: '💨', baseHp: 120, baseAtk: 14, baseDef: 1, weapon: '단검', crit: 0.30, evade: 0.20 },
+        '궁수': { emoji: '🏹', baseHp: 115, baseAtk: 15, baseDef: 2, weapon: '활', crit: 0.20, evade: 0.10 },
     };
 
     const DIFFICULTY_SETTINGS = {
@@ -1192,7 +1193,7 @@
             description: level => `공격력의 200% 피해를 주고, ${2+level}턴 동안 방어력이 ${30 + level * 5}% 증가하는 '철벽' 효과를 얻습니다.`,
             effect: level => ({
                 damageMultiplier: 2.0,
-                buff: { stat: 'defense', value: 0.30 + level * 0.05, duration: 2 + level, isPercent: true },
+                buff: { name: '철벽', stat: 'defense', value: 0.30 + level * 0.05, duration: 2 + level, isPercent: true },
                 message: '🛡️ 강철의 의지! [철옹성]을 발동하여 적에게 참격을 날리고, 몸이 강철처럼 단단해졌다!'
             })
         },
@@ -1217,7 +1218,18 @@
                 statusEffect: { type: 'poison', chance: 1.0, duration: 3, potency: 8 + level * 2 },
                 message: '💨 어둠 속에서 번뜩이는 칼날! [그림자 습격]으로 적의 배후를 2회 강타하고 맹독을 주입했다!'
             })
-        }
+        },
+        '궁수': {
+            id: 'a_ultimate',
+            name: '집중 사격',
+            cooldown: 5,
+            description: level => `공격력의 ${220 + level*15}% 피해를 입히고, 다음 2턴간 치명타 확률이 ${15 + level*5}% 증가합니다.`,
+            effect: level => ({
+                damageMultiplier: 2.2 + level * 0.15,
+                buff: { name: '집중', stat: 'critChance', value: 0.15 + level * 0.05, duration: 2, isPercent: false },
+                message: '🏹 숨을 멈추고 시위를 당긴다! [집중 사격]이 적의 급소를 꿰뚫었다!'
+            })
+        },
     };
     
     const ULTIMATE_SKILLS_2 = {
@@ -1253,7 +1265,19 @@
                 buff2: { name: '확정 치명타', duration: 2, effect: { guaranteedCrit: true } },
                 message: '연기 속으로 사라진다! [연막탄]을 사용해, 다음 공격을 준비한다!'
             })
-        }
+        },
+        '궁수': {
+            id: 'a_ultimate_2',
+            name: '화살비',
+            cooldown: 6,
+            description: level => `공격력의 100% 피해를 3번 입히고, ${50 + level*10}% 확률로 2턴간 적을 [약화] 상태로 만듭니다.`,
+            effect: level => ({
+                damageMultiplier: 1.0, // Per hit
+                hits: 3,
+                statusEffect: { type: 'weaken', chance: 0.5 + level * 0.1, duration: 2, potency: 0.15 },
+                message: '🎯 하늘이 화살로 뒤덮인다! [화살비]가 적진을 초토화시킨다!'
+            })
+        },
     };
 
     const SKILL_DATA = {
@@ -1278,6 +1302,13 @@
             'r_execute_1': { id: 'r_execute_1', name: '마무리 일격', maxLevel: 1, description: level => `체력이 25% 이하인 적에게 20%의 추가 피해를 입힙니다.`, cost: level => 1000, requiredPlayerLevel: 5, prerequisites: [{id: 'r_atk_1', level: 2}], effects: level => [] }, // Special handling
             'r_ult_2': { id: 'r_ult_2', name: '연막탄', maxLevel: 3, description: ULTIMATE_SKILLS_2['도적'].description, cost: level => 2000 * (level + 1), requiredPlayerLevel: 15, prerequisites: [{id: 'r_execute_1', level: 1}], effects: level => [] },
         },
+        '궁수': {
+            'a_atk_1': { id: 'a_atk_1', name: '명궁의 마음', description: level => `공격력이 레벨당 2씩 증가합니다. (총 +${level*2})`, cost: level => 120 * (level + 1), requiredPlayerLevel: 1, prerequisites: [], effects: level => [{ stat: 'attackPower', value: 2 * level }] },
+            'a_crit_1': { id: 'a_crit_1', name: '매의 눈', description: level => `치명타 확률이 레벨당 1%씩 증가합니다. (총 +${level}%)`, cost: level => 150 * (level + 1), requiredPlayerLevel: 1, prerequisites: [], effects: level => [{ stat: 'critChance', value: 0.01 * level }] },
+            'a_crit_dmg_1': { id: 'a_crit_dmg_1', name: '약점 간파', description: level => `치명타 피해량이 레벨당 5%씩 증가합니다. (총 +${level*5}%)`, cost: level => 200 * (level + 1), requiredPlayerLevel: 3, prerequisites: [{id: 'a_crit_1', level: 1}], effects: level => [{ stat: 'critDamage', value: 0.05 * level }] },
+            'a_ult_1': { id: 'a_ult_1', name: '집중 사격 강화', description: level => `집중 사격의 치명타 확률 증가 효과가 레벨당 2%씩 추가됩니다.`, cost: level => 500 * (level + 1), requiredPlayerLevel: 5, prerequisites: [{id: 'a_crit_dmg_1', level: 2}], effects: level => [] }, // Special handling
+            'a_ult_2': { id: 'a_ult_2', name: '화살비', maxLevel: 3, description: ULTIMATE_SKILLS_2['궁수'].description, cost: level => 2000 * (level + 1), requiredPlayerLevel: 15, prerequisites: [{id: 'a_ult_1', level: 1}], effects: level => [] },
+        },
     };
 
     const ITEM_DATABASE = [
@@ -1288,6 +1319,8 @@
         { id: 104, name: "나무 지팡이", type: 'weapon', stats: { attackPower: 3 }, rarity: 'common', cost: 25, classRestriction: ['마법사'] },
         { id: 105, name: "작은 단검", type: 'weapon', stats: { attackPower: 1, critChance: 0.02 }, rarity: 'common', cost: 25, classRestriction: ['도적'] },
         { id: 106, name: "판금 조끼", type: 'armor', stats: { defense: 2 }, rarity: 'common', cost: 25, classRestriction: ['전사'] },
+        { id: 107, name: "짧은 활", type: 'weapon', stats: { attackPower: 2, critChance: 0.01 }, rarity: 'common', cost: 25, classRestriction: ['궁수'] },
+        { id: 108, name: "사냥꾼 조끼", type: 'armor', stats: { defense: 1, evadeChance: 0.02 }, rarity: 'common', cost: 25, classRestriction: ['궁수'] },
 
         // Uncommon
         { id: 201, name: "강철 검", type: 'weapon', stats: { attackPower: 5 }, rarity: 'uncommon', cost: 100, classRestriction: ['전사'] },
@@ -1296,6 +1329,8 @@
         { id: 204, name: "보석 박힌 지팡이", type: 'weapon', stats: { attackPower: 6 }, rarity: 'uncommon', cost: 100, classRestriction: ['마법사'] },
         { id: 205, name: "암살자의 단검", type: 'weapon', stats: { attackPower: 3, critChance: 0.05 }, rarity: 'uncommon', cost: 100, classRestriction: ['도적'] },
         { id: 206, name: "강철 갑옷", type: 'armor', stats: { defense: 4, maxHp: 25 }, rarity: 'uncommon', cost: 100, classRestriction: ['전사'] },
+        { id: 207, name: "장궁", type: 'weapon', stats: { attackPower: 5, critChance: 0.02 }, rarity: 'uncommon', cost: 100, classRestriction: ['궁수'] },
+        { id: 208, name: "정찰병의 갑옷", type: 'armor', stats: { defense: 2, evadeChance: 0.03, maxHp: 15 }, rarity: 'uncommon', cost: 100, classRestriction: ['궁수'] },
         
         // Rare
         { id: 301, name: "룬 블레이드", type: 'weapon', stats: { attackPower: 8, critChance: 0.03 }, rarity: 'rare', cost: 300, classRestriction: ['전사'] },
@@ -1304,26 +1339,30 @@
         { id: 304, name: "현자의 지팡이", type: 'weapon', stats: { attackPower: 10, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['마법사'] },
         { id: 305, name: "독사의 송곳니", type: 'weapon', stats: { attackPower: 7, critChance: 0.07 }, rarity: 'rare', cost: 300, classRestriction: ['도적'] },
         { id: 306, name: "밤의 장막 갑옷", type: 'armor', stats: { defense: 3, evadeChance: 0.05, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['도적'] },
+        { id: 307, name: "사냥꾼의 활", type: 'weapon', stats: { attackPower: 8, critChance: 0.05 }, rarity: 'rare', cost: 300, classRestriction: ['궁수'] },
+        { id: 308, name: "바람의 가죽 갑옷", type: 'armor', stats: { defense: 4, evadeChance: 0.04, critChance: 0.02 }, rarity: 'rare', cost: 300, classRestriction: ['궁수'] },
         
         // Legendary
         { id: 401, name: "용살자의 대검", type: 'weapon', stats: { attackPower: 20, maxHp: 50 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사'] },
         { id: 402, name: "아크메이지의 지팡이", type: 'weapon', stats: { attackPower: 25 }, rarity: 'legendary', cost: 5000, classRestriction: ['마법사'] },
         { id: 403, name: "월광의 단검", type: 'weapon', stats: { attackPower: 15, critChance: 0.10, evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['도적'] },
-        { id: 404, name: "수호신의 갑주", type: 'armor', stats: { defense: 10, maxHp: 100 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '도적', '마법사'] },
+        { id: 404, name: "수호신의 갑주", type: 'armor', stats: { defense: 10, maxHp: 100 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '도적', '마법사', '궁수'] },
+        { id: 405, name: "폭풍의 활", type: 'weapon', stats: { attackPower: 18, critChance: 0.08 }, rarity: 'legendary', cost: 5000, classRestriction: ['궁수'] },
 
         // Mythic (New Tier)
         { id: 601, name: "천벌", type: 'weapon', stats: { attackPower: 35, critChance: 0.10 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사'], isGachaOnly: true },
         { id: 602, name: "종말의 서", type: 'weapon', stats: { attackPower: 40, maxHp: 50 }, rarity: 'mythic', cost: 99999, classRestriction: ['마법사'], isGachaOnly: true },
         { id: 603, name: "밤의 파편", type: 'weapon', stats: { attackPower: 25, critChance: 0.15, evadeChance: 0.08 }, rarity: 'mythic', cost: 99999, classRestriction: ['도적'], isGachaOnly: true },
-        { id: 604, name: "세계수의 심장", type: 'armor', stats: { defense: 15, maxHp: 150, evadeChance: 0.05 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사', '도적', '마법사'], isGachaOnly: true },
+        { id: 604, name: "세계수의 심장", type: 'armor', stats: { defense: 15, maxHp: 150, evadeChance: 0.05 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사', '도적', '마법사', '궁수'], isGachaOnly: true },
+        { id: 605, name: "천공의 분노", type: 'weapon', stats: { attackPower: 30, critChance: 0.15 }, rarity: 'mythic', cost: 99999, classRestriction: ['궁수'], isGachaOnly: true },
 
         // Accessories
-        { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 502, name: "활력의 부적", type: 'accessory', stats: { maxHp: 50 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 503, "name": "수호의 징표", type: 'accessory', stats: { defense: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적'] },
-        { id: 506, "name": "현자의 돌", type: 'accessory', stats: { attackPower: 8, maxHp: 80 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적'] },
+        { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적', '궁수'] },
+        { id: 502, name: "활력의 부적", type: 'accessory', stats: { maxHp: 50 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적', '궁수'] },
+        { id: 503, "name": "수호의 징표", type: 'accessory', stats: { defense: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적', '궁수'] },
+        { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적', '궁수'] },
+        { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적', '궁수'] },
+        { id: 506, "name": "현자의 돌", type: 'accessory', stats: { attackPower: 8, maxHp: 80 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적', '궁수'] },
     ];
     
     const ENCHANTMENT_POOL = {
@@ -1394,16 +1433,16 @@
 
     const monsterList = [
         { name: '슬라임', emoji: '💧', baseHp: 20, baseAttack: 5, xp: 25, gold: 5, lootTable: [102, 105] },
-        { name: '고블린', emoji: '👺', baseHp: 30, baseAttack: 7, xp: 40, gold: 10, lootTable: [101, 103, 105], onHitEffect: {type: 'weaken', chance: 0.2, duration: 2, potency: 0.1} },
+        { name: '고블린', emoji: '👺', baseHp: 30, baseAttack: 7, xp: 40, gold: 10, lootTable: [101, 103, 105, 107, 108], onHitEffect: {type: 'weaken', chance: 0.2, duration: 2, potency: 0.1} },
         { name: '오크', emoji: '👹', baseHp: 45, baseAttack: 11, xp: 60, gold: 15, lootTable: [101, 106, 201] },
-        { name: '독거미', emoji: '🕷️', baseHp: 55, baseAttack: 12, xp: 75, gold: 20, lootTable: [205, 203], onHitEffect: {type: 'poison', chance: 0.4, duration: 3, potency: 4} },
+        { name: '독거미', emoji: '🕷️', baseHp: 55, baseAttack: 12, xp: 75, gold: 20, lootTable: [205, 203, 207, 208], onHitEffect: {type: 'poison', chance: 0.4, duration: 3, potency: 4} },
         { name: '스켈레톤', emoji: '💀', baseHp: 65, baseAttack: 14, xp: 85, gold: 25, lootTable: [201, 206] },
     ];
 
     const bossList = [
         { name: '동굴 트롤', emoji: '🗿', baseHp: 100, baseAttack: 18, xp: 200, gold: 100, lootTable: [201, 206, 205], onHitEffect: {type: 'stun', chance: 0.2, duration: 1, potency: 0} },
         { name: '거대 골렘', emoji: '🤖', baseHp: 150, baseAttack: 23, xp: 300, gold: 150, lootTable: [202, 204, 303], onHitEffect: {type: 'vulnerable', chance: 0.5, duration: 2, potency: 0.25} },
-        { name: '흑기사', emoji: '♞', baseHp: 200, baseAttack: 28, xp: 450, gold: 220, lootTable: [301, 303], onHitEffect: {type: 'weaken', chance: 0.4, duration: 3, potency: 0.2} },
+        { name: '흑기사', emoji: '♞', baseHp: 200, baseAttack: 28, xp: 450, gold: 220, lootTable: [301, 303, 307, 308], onHitEffect: {type: 'weaken', chance: 0.4, duration: 3, potency: 0.2} },
         { name: '드래곤', emoji: '🐲', baseHp: 270, baseAttack: 34, xp: 600, gold: 300, lootTable: [301, 302], onHitEffect: {type: 'burn', chance: 0.7, duration: 3, potency: 15} },
     ];
 
@@ -1584,6 +1623,10 @@
                         <h2>도적 💨</h2>
                         <p>치명적인 공격과 높은 회피율로 적을 순식간에 제압합니다.</p>
                     </button>
+                    <button class="class-card" data-class="궁수">
+                        <h2>궁수 🏹</h2>
+                        <p>날카로운 화살로 원거리에서 적의 약점을 노립니다. 치명타 공격에 특화되어 있습니다.</p>
+                    </button>
                 </div>
             </div>
         `;
@@ -1617,6 +1660,10 @@
                     <button class="class-card" data-class="도적" ${player.className === '도적' ? 'disabled' : ''}>
                         <h2>도적 💨</h2>
                         <p>치명적인 공격과 높은 회피율로 적을 순식간에 제압합니다.</p>
+                    </button>
+                    <button class="class-card" data-class="궁수" ${player.className === '궁수' ? 'disabled' : ''}>
+                        <h2>궁수 🏹</h2>
+                        <p>날카로운 화살로 원거리에서 적의 약점을 노립니다. 치명타 공격에 특화되어 있습니다.</p>
                     </button>
                 </div>
                 <button id="back-to-town" class="button" style="margin-top: 1rem; width: 100%;">마을로 돌아가기</button>
@@ -1700,7 +1747,7 @@
         rebirthUpgrades,
         baseStats: {},
         hp: 0, maxHp: 0, attackPower: 0, defense: 0, 
-        critChance: 0, evadeChance: 0,
+        critChance: 0, critDamage: 0, evadeChance: 0,
         isLiberated: false,
       };
       recalculatePlayerStats();
@@ -1720,6 +1767,7 @@
             attackPower: classData.baseAtk,
             defense: classData.baseDef,
             critChance: classData.crit,
+            critDamage: 0, // Base crit damage bonus is 0
             evadeChance: classData.evade,
         };
         
@@ -1774,6 +1822,7 @@
         p.attackPower = Math.floor(tempStats.attackPower * percentModifiers.attackPower);
         p.defense = Math.floor(tempStats.defense * percentModifiers.defense);
         p.critChance = tempStats.critChance;
+        p.critDamage = tempStats.critDamage;
         p.evadeChance = tempStats.evadeChance;
 
         let buffAtkPercent = 0;
@@ -2046,7 +2095,7 @@
             const skill2 = ULTIMATE_SKILLS_2[player.className];
             const cooldown2 = player.ultimateSkill2Cooldown;
             const disabled2 = cooldown2 > 0 || isBattleOver;
-            skill2Button = `<button data-action="ultimate2" class="button skill-button" ${disabled2 && !isBattleOver ? `(${cooldown2})` : ''}</button>`;
+            skill2Button = `<button data-action="ultimate2" class="button skill-button" ${disabled2 ? 'disabled' : ''}>${skill2.name} ${disabled2 && !isBattleOver ? `(${cooldown2})` : ''}</button>`;
         }
 
         root.innerHTML = `
@@ -2166,7 +2215,7 @@
         }
 
         if (isGuaranteedCrit || Math.random() < player.critChance) {
-            playerDamage = Math.floor(playerDamage * CRIT_MULTIPLIER);
+            playerDamage = Math.floor(playerDamage * (CRIT_MULTIPLIER + player.critDamage));
             addMessage(`💥 치명타! ${isGuaranteedCrit ? '(확정) ' : ''}${player.name}이(가) ${monster.name}에게 ${playerDamage}의 데미지를 입혔다!`);
         } else {
             addMessage(`⚔️ ${player.name}이(가) ${monster.name}에게 ${playerDamage}의 데미지를 입혔다.`);
@@ -2195,7 +2244,7 @@
             }
 
             if (Math.random() < player.critChance) {
-                damage = Math.floor(damage * CRIT_MULTIPLIER);
+                damage = Math.floor(damage * (CRIT_MULTIPLIER + player.critDamage));
                 addMessage(`💥 치명타! ${Math.floor(damage)}의 피해!`);
             }
             monster.hp = Math.max(0, monster.hp - Math.floor(damage));
@@ -2213,7 +2262,11 @@
         }
 
         if (effect.buff) {
-            player.activeBuffs.push({ skillId: skill.id, name: skill.name, duration: effect.buff.duration + 1, effect: effect.buff });
+            const finalBuff = JSON.parse(JSON.stringify(effect.buff)); // Deep copy to avoid mutation issues
+            if (player.className === '궁수' && player.unlockedSkills['a_ult_1']) {
+                finalBuff.value += player.unlockedSkills['a_ult_1'] * 0.02;
+            }
+            player.activeBuffs.push({ skillId: skill.id, name: finalBuff.name || skill.name, duration: finalBuff.duration + 1, effect: finalBuff });
             recalculatePlayerStats();
         }
         
@@ -2239,12 +2292,16 @@
         player.ultimateSkill2Cooldown = finalCooldown;
 
         if (effect.damageMultiplier) {
-            let damage = player.attackPower * effect.damageMultiplier;
-            if (Math.random() < player.critChance) {
-                damage = Math.floor(damage * CRIT_MULTIPLIER);
-                addMessage(`💥 치명타! ${Math.floor(damage)}의 피해!`);
+            const hits = effect.hits || 1;
+            for (let i = 0; i < hits; i++) {
+                if (monster.hp <= 0) break; // Stop if monster is defeated mid-attack
+                let damage = player.attackPower * effect.damageMultiplier;
+                if (Math.random() < player.critChance) {
+                    damage = Math.floor(damage * (CRIT_MULTIPLIER + player.critDamage));
+                    addMessage(`💥 치명타! ${Math.floor(damage)}의 피해! (${i + 1}/${hits})`);
+                }
+                monster.hp = Math.max(0, monster.hp - Math.floor(damage));
             }
-            monster.hp = Math.max(0, monster.hp - Math.floor(damage));
         }
 
         if (effect.buff) {
@@ -2611,6 +2668,7 @@
                     case 'defense': statName = 'DEF'; break;
                     case 'critChance': statName = '치명타'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
                     case 'evadeChance': statName = '회피'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
+                    case 'critDamage': statName = '치명피해'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
                 }
                 return `${statName} +${value}`;
             }).join(', ');
@@ -2973,6 +3031,7 @@
                 case 'defense': statName = 'DEF'; break;
                 case 'critChance': statName = '치명타'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
                 case 'evadeChance': statName = '회피'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
+                case 'critDamage': statName = '치명피해'; value = value * 100; return `${statName} +${value.toFixed(0)}%`;
             }
             return `${statName} +${value}`;
         }).join(', ');
