@@ -1308,7 +1308,7 @@
     const CLASSES = {
         '전사': { emoji: '🛡️', baseHp: 160, baseAtk: 12, baseDef: 4, weapon: '검', crit: 0.1, evade: 0.05 },
         '마법사': { emoji: '🔥', baseHp: 110, baseAtk: 16, baseDef: 0, weapon: '지팡이', crit: 0.1, evade: 0.05 },
-        '도적': { emoji: '💨', baseHp: 120, baseAtk: 14, baseDef: 1, weapon: '단검', crit: 0.30, evade: 0.20 },
+        '암살자': { emoji: '💨', baseHp: 120, baseAtk: 14, baseDef: 1, weapon: '단검', crit: 0.30, evade: 0.20 },
         '궁수': { emoji: '🏹', baseHp: 115, baseAtk: 15, baseDef: 2, weapon: '활', crit: 0.20, evade: 0.10 },
     };
 
@@ -1341,7 +1341,7 @@
                 message: '☄️ 하늘이 붉게 물든다! 거대한 [메테오]가 떨어져 적을 불태우고 지면을 녹인다!'
             })
         },
-        '도적': {
+        '암살자': {
             id: 'r_ultimate',
             name: '그림자 습격',
             cooldown: 5,
@@ -1388,7 +1388,7 @@
                 message: '냉기가 휘몰아친다! [서리 고리]가 적을 그 자리에 얼어붙게 했다!'
             })
         },
-        '도적': {
+        '암살자': {
             id: 'r_ultimate_2',
             name: '연막탄',
             cooldown: 6,
@@ -1428,12 +1428,12 @@
             'm_ult_1': { id: 'm_ult_1', name: '메테오 강화', description: level => `메테오의 기본 피해량이 레벨당 10%씩 증가합니다.`, cost: level => 500 * (level + 1), requiredPlayerLevel: 5, prerequisites: [{id: 'm_burn_1', level: 1}], effects: level => [] }, // Special handling
             'm_ult_2': { id: 'm_ult_2', name: '서리 고리', maxLevel: 3, description: ULTIMATE_SKILLS_2['마법사'].description, cost: level => 2000 * (level + 1), requiredPlayerLevel: 15, prerequisites: [{id: 'm_ult_1', level: 1}], effects: level => [] },
         },
-        '도적': {
+        '암살자': {
             'r_crit_1': { id: 'r_crit_1', name: '급소 파악', description: level => `치명타 확률이 레벨당 1%씩 증가합니다. (총 +${level}%)`, cost: level => 150 * (level + 1), requiredPlayerLevel: 1, prerequisites: [], effects: level => [{ stat: 'critChance', value: 0.01 * level }] },
             'r_evade_1': { id: 'r_evade_1', name: '날렵한 몸놀림', description: level => `회피 확률이 레벨당 1%씩 증가합니다. (총 +${level}%)`, cost: level => 150 * (level + 1), requiredPlayerLevel: 1, prerequisites: [], effects: level => [{ stat: 'evadeChance', value: 0.01 * level }] },
             'r_atk_1': { id: 'r_atk_1', name: '단검 연마', description: level => `공격력이 레벨당 2씩 증가합니다. (총 +${level*2})`, cost: level => 120 * (level + 1), requiredPlayerLevel: 3, prerequisites: [{id: 'r_crit_1', level: 1}], effects: level => [{ stat: 'attackPower', value: 2 * level }] },
             'r_execute_1': { id: 'r_execute_1', name: '마무리 일격', maxLevel: 1, description: level => `체력이 25% 이하인 적에게 20%의 추가 피해를 입힙니다.`, cost: level => 1000, requiredPlayerLevel: 5, prerequisites: [{id: 'r_atk_1', level: 2}], effects: level => [] }, // Special handling
-            'r_ult_2': { id: 'r_ult_2', name: '연막탄', maxLevel: 3, description: ULTIMATE_SKILLS_2['도적'].description, cost: level => 2000 * (level + 1), requiredPlayerLevel: 15, prerequisites: [{id: 'r_execute_1', level: 1}], effects: level => [] },
+            'r_ult_2': { id: 'r_ult_2', name: '연막탄', maxLevel: 3, description: ULTIMATE_SKILLS_2['암살자'].description, cost: level => 2000 * (level + 1), requiredPlayerLevel: 15, prerequisites: [{id: 'r_execute_1', level: 1}], effects: level => [] },
         },
         '궁수': {
             'a_atk_1': { id: 'a_atk_1', name: '명궁의 마음', description: level => `공격력이 레벨당 2씩 증가합니다. (총 +${level*2})`, cost: level => 120 * (level + 1), requiredPlayerLevel: 1, prerequisites: [], effects: level => [{ stat: 'attackPower', value: 2 * level }] },
@@ -1448,9 +1448,9 @@
         // Common
         { id: 101, name: "녹슨 검", type: 'weapon', stats: { attackPower: 2 }, rarity: 'common', cost: 25, classRestriction: ['전사'] },
         { id: 102, name: "해진 로브", type: 'armor', stats: { maxHp: 10 }, rarity: 'common', cost: 25, classRestriction: ['마법사'] },
-        { id: 103, name: "가죽 갑옷", type: 'armor', stats: { defense: 1, evadeChance: 0.01 }, rarity: 'common', cost: 25, classRestriction: ['도적'] },
+        { id: 103, name: "가죽 갑옷", type: 'armor', stats: { defense: 1, evadeChance: 0.01 }, rarity: 'common', cost: 25, classRestriction: ['암살자'] },
         { id: 104, name: "나무 지팡이", type: 'weapon', stats: { attackPower: 3 }, rarity: 'common', cost: 25, classRestriction: ['마법사'] },
-        { id: 105, name: "작은 단검", type: 'weapon', stats: { attackPower: 1, critChance: 0.02 }, rarity: 'common', cost: 25, classRestriction: ['도적'] },
+        { id: 105, name: "작은 단검", type: 'weapon', stats: { attackPower: 1, critChance: 0.02 }, rarity: 'common', cost: 25, classRestriction: ['암살자'] },
         { id: 106, name: "판금 조끼", type: 'armor', stats: { defense: 2 }, rarity: 'common', cost: 25, classRestriction: ['전사'] },
         { id: 107, name: "짧은 활", type: 'weapon', stats: { attackPower: 2, critChance: 0.01 }, rarity: 'common', cost: 25, classRestriction: ['궁수'] },
         { id: 108, name: "사냥꾼 조끼", type: 'armor', stats: { defense: 1, evadeChance: 0.02 }, rarity: 'common', cost: 25, classRestriction: ['궁수'] },
@@ -1458,9 +1458,9 @@
         // Uncommon
         { id: 201, name: "강철 검", type: 'weapon', stats: { attackPower: 5 }, rarity: 'uncommon', cost: 100, classRestriction: ['전사'] },
         { id: 202, name: "마법사의 로브", type: 'armor', stats: { maxHp: 20, attackPower: 2 }, rarity: 'uncommon', cost: 100, classRestriction: ['마법사'] },
-        { id: 203, name: "그림자 사슬 갑옷", type: 'armor', stats: { defense: 2, maxHp: 10, evadeChance: 0.03 }, rarity: 'uncommon', cost: 100, classRestriction: ['도적'] },
+        { id: 203, name: "그림자 사슬 갑옷", type: 'armor', stats: { defense: 2, maxHp: 10, evadeChance: 0.03 }, rarity: 'uncommon', cost: 100, classRestriction: ['암살자'] },
         { id: 204, name: "보석 박힌 지팡이", type: 'weapon', stats: { attackPower: 6 }, rarity: 'uncommon', cost: 100, classRestriction: ['마법사'] },
-        { id: 205, name: "암살자의 단검", type: 'weapon', stats: { attackPower: 3, critChance: 0.05 }, rarity: 'uncommon', cost: 100, classRestriction: ['도적'] },
+        { id: 205, name: "암살자의 단검", type: 'weapon', stats: { attackPower: 3, critChance: 0.05 }, rarity: 'uncommon', cost: 100, classRestriction: ['암살자'] },
         { id: 206, name: "강철 갑옷", type: 'armor', stats: { defense: 4, maxHp: 25 }, rarity: 'uncommon', cost: 100, classRestriction: ['전사'] },
         { id: 207, name: "장궁", type: 'weapon', stats: { attackPower: 5, critChance: 0.02 }, rarity: 'uncommon', cost: 100, classRestriction: ['궁수'] },
         { id: 208, name: "정찰병의 갑옷", type: 'armor', stats: { defense: 2, evadeChance: 0.03, maxHp: 15 }, rarity: 'uncommon', cost: 100, classRestriction: ['궁수'] },
@@ -1470,39 +1470,39 @@
         { id: 302, name: "대마법사의 로브", type: 'armor', stats: { maxHp: 30, attackPower: 5, defense: 1 }, rarity: 'rare', cost: 300, classRestriction: ['마법사'] },
         { id: 303, name: "기사의 갑옷", type: 'armor', stats: { defense: 5, maxHp: 40 }, rarity: 'rare', cost: 300, classRestriction: ['전사'] },
         { id: 304, name: "현자의 지팡이", type: 'weapon', stats: { attackPower: 10, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['마법사'] },
-        { id: 305, name: "독사의 송곳니", type: 'weapon', stats: { attackPower: 7, critChance: 0.07 }, rarity: 'rare', cost: 300, classRestriction: ['도적'] },
-        { id: 306, name: "밤의 장막 갑옷", type: 'armor', stats: { defense: 3, evadeChance: 0.05, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['도적'] },
+        { id: 305, name: "독사의 송곳니", type: 'weapon', stats: { attackPower: 7, critChance: 0.07 }, rarity: 'rare', cost: 300, classRestriction: ['암살자'] },
+        { id: 306, name: "밤의 장막 갑옷", type: 'armor', stats: { defense: 3, evadeChance: 0.05, maxHp: 20 }, rarity: 'rare', cost: 300, classRestriction: ['암살자'] },
         { id: 307, name: "사냥꾼의 활", type: 'weapon', stats: { attackPower: 8, critChance: 0.05 }, rarity: 'rare', cost: 300, classRestriction: ['궁수'] },
         { id: 308, name: "바람의 가죽 갑옷", type: 'armor', stats: { defense: 4, evadeChance: 0.04, critChance: 0.02 }, rarity: 'rare', cost: 300, classRestriction: ['궁수'] },
         
         // Legendary
         { id: 401, name: "용살자의 대검", type: 'weapon', stats: { attackPower: 20, maxHp: 50 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사'] },
         { id: 402, name: "아크메이지의 지팡이", type: 'weapon', stats: { attackPower: 25 }, rarity: 'legendary', cost: 5000, classRestriction: ['마법사'] },
-        { id: 403, name: "월광의 단검", type: 'weapon', stats: { attackPower: 15, critChance: 0.10, evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['도적'] },
-        { id: 404, name: "수호신의 갑주", type: 'armor', stats: { defense: 10, maxHp: 100 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '도적', '마법사', '궁수'] },
+        { id: 403, name: "월광의 단검", type: 'weapon', stats: { attackPower: 15, critChance: 0.10, evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['암살자'] },
+        { id: 404, name: "수호신의 갑주", type: 'armor', stats: { defense: 10, maxHp: 100 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '암살자', '마법사', '궁수'] },
         { id: 405, name: "폭풍의 활", type: 'weapon', stats: { attackPower: 18, critChance: 0.08 }, rarity: 'legendary', cost: 5000, classRestriction: ['궁수'] },
 
         // Mythic
         { id: 601, name: "천벌", type: 'weapon', stats: { attackPower: 35, critChance: 0.10 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사'], isGachaOnly: true },
         { id: 602, name: "종말의 서", type: 'weapon', stats: { attackPower: 40, maxHp: 50 }, rarity: 'mythic', cost: 99999, classRestriction: ['마법사'], isGachaOnly: true },
-        { id: 603, name: "밤의 파편", type: 'weapon', stats: { attackPower: 25, critChance: 0.15, evadeChance: 0.08 }, rarity: 'mythic', cost: 99999, classRestriction: ['도적'], isGachaOnly: true },
-        { id: 604, name: "세계수의 심장", type: 'armor', stats: { defense: 15, maxHp: 150, evadeChance: 0.05 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사', '도적', '마법사', '궁수'], isGachaOnly: true },
+        { id: 603, name: "밤의 파편", type: 'weapon', stats: { attackPower: 25, critChance: 0.15, evadeChance: 0.08 }, rarity: 'mythic', cost: 99999, classRestriction: ['암살자'], isGachaOnly: true },
+        { id: 604, name: "세계수의 심장", type: 'armor', stats: { defense: 15, maxHp: 150, evadeChance: 0.05 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사', '암살자', '마법사', '궁수'], isGachaOnly: true },
         { id: 605, name: "천공의 분노", type: 'weapon', stats: { attackPower: 30, critChance: 0.15 }, rarity: 'mythic', cost: 99999, classRestriction: ['궁수'], isGachaOnly: true },
 
         // Ultimate
         { id: 701, name: "궁극의 파멸검", type: 'weapon', stats: { attackPower: 50, critDamage: 0.15 }, rarity: 'ultimate', cost: 999999, classRestriction: ['전사'], isGachaOnly: true },
         { id: 702, name: "태초의 지혜", type: 'weapon', stats: { attackPower: 60, maxHp: 100 }, rarity: 'ultimate', cost: 999999, classRestriction: ['마법사'], isGachaOnly: true },
-        { id: 703, name: "시간 왜곡 단검", type: 'weapon', stats: { attackPower: 35, critChance: 0.1, evadeChance: 0.1 }, rarity: 'ultimate', cost: 999999, classRestriction: ['도적'], isGachaOnly: true },
+        { id: 703, name: "시간 왜곡 단검", type: 'weapon', stats: { attackPower: 35, critChance: 0.1, evadeChance: 0.1 }, rarity: 'ultimate', cost: 999999, classRestriction: ['암살자'], isGachaOnly: true },
         { id: 704, name: "별의 노래", type: 'weapon', stats: { attackPower: 45, critChance: 0.20 }, rarity: 'ultimate', cost: 999999, classRestriction: ['궁수'], isGachaOnly: true },
-        { id: 705, name: "창조신의 갑주", type: 'armor', stats: { defense: 25, maxHp: 250, evadeChance: 0.05 }, rarity: 'ultimate', cost: 999999, classRestriction: ['전사', '도적', '마법사', '궁수'], isGachaOnly: true },
+        { id: 705, name: "창조신의 갑주", type: 'armor', stats: { defense: 25, maxHp: 250, evadeChance: 0.05 }, rarity: 'ultimate', cost: 999999, classRestriction: ['전사', '암살자', '마법사', '궁수'], isGachaOnly: true },
 
         // Accessories
-        { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적', '궁수'] },
-        { id: 502, name: "활력의 부적", type: 'accessory', stats: { maxHp: 50 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적', '궁수'] },
-        { id: 503, "name": "수호의 징표", type: 'accessory', stats: { defense: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '도적', '궁수'] },
-        { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적', '궁수'] },
-        { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적', '궁수'] },
-        { id: 506, "name": "현자의 돌", type: 'accessory', stats: { attackPower: 8, maxHp: 80 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '도적', '궁수'] },
+        { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
+        { id: 502, name: "활력의 부적", type: 'accessory', stats: { maxHp: 50 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
+        { id: 503, "name": "수호의 징표", type: 'accessory', stats: { defense: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
+        { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
+        { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
+        { id: 506, "name": "현자의 돌", type: 'accessory', stats: { attackPower: 8, maxHp: 80 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
     ];
 
     const SYNTHESIS_RECIPES = [
@@ -1875,8 +1875,8 @@
                         <h2>마법사 🔥</h2>
                         <p>강력한 원소 마법으로 적을 불태우거나 얼립니다.</p>
                     </button>
-                    <button class="class-card" data-class="도적">
-                        <h2>도적 💨</h2>
+                    <button class="class-card" data-class="암살자">
+                        <h2>암살자 💨</h2>
                         <p>치명적인 공격과 높은 회피율로 적을 순식간에 제압합니다.</p>
                     </button>
                     <button class="class-card" data-class="궁수">
@@ -1914,8 +1914,8 @@
                         <h2>마법사 🔥</h2>
                         <p>강력한 원소 마법으로 적을 불태우거나 얼립니다.</p>
                     </button>
-                    <button class="class-card" data-class="도적" ${player.className === '도적' ? 'disabled' : ''}>
-                        <h2>도적 💨</h2>
+                    <button class="class-card" data-class="암살자" ${player.className === '암살자' ? 'disabled' : ''}>
+                        <h2>암살자 💨</h2>
                         <p>치명적인 공격과 높은 회피율로 적을 순식간에 제압합니다.</p>
                     </button>
                     <button class="class-card" data-class="궁수" ${player.className === '궁수' ? 'disabled' : ''}>
@@ -1985,7 +1985,7 @@
         weaponName: classData.weapon,
         level: 1,
         xp: 0,
-        xpToNextLevel: 26,
+        xpToNextLevel: 39,
         gold: difficultySettings.startGold,
         enhancementStones: 0,
         enchantmentDust: 0,
@@ -2516,7 +2516,7 @@
         };
 
         if (effect.damageMultiplier) {
-            if (player.className === '도적') {
+            if (player.className === '암살자') {
                 applyDamage(effect.damageMultiplier);
                 if (monster.hp > 0) {
                     applyDamage(effect.damageMultiplier);
@@ -2833,6 +2833,10 @@
                         <span>🧪 회복 물약 구매</span>
                         <button class="button" id="buy-potion" ${player.gold < currentPotionCost ? 'disabled' : ''}>${currentPotionCost} G</button>
                     </div>
+                    <div class="shop-item">
+                        <span>💎 강화석 10개 구매</span>
+                        <button class="button" id="buy-stones" ${player.gold < 500 ? 'disabled' : ''}>500 G</button>
+                    </div>
                     ${itemsHtml}
                     ${filteredItems.length === 0 ? '<p>표시할 아이템이 없습니다.</p>' : ''}
                 </div>
@@ -2845,6 +2849,17 @@
             if (player.gold >= cost) {
                 player.gold -= cost;
                 player.potions++;
+                saveGameState();
+                renderShopScreen();
+            }
+        });
+
+        document.getElementById('buy-stones')?.addEventListener('click', () => {
+            const cost = 500;
+            const amount = 10;
+            if (player.gold >= cost) {
+                player.gold -= cost;
+                player.enhancementStones += amount;
                 saveGameState();
                 renderShopScreen();
             }
@@ -4109,7 +4124,7 @@
         dungeonLevel = 1;
         player.level = 1;
         player.xp = 0;
-        player.xpToNextLevel = 26;
+        player.xpToNextLevel = 39;
         player.gold = difficultySettings.startGold + (player.rebirthUpgrades.gold_gain || 0) * 100; // Bonus starting gold
         player.potions = difficultySettings.startPotions;
         player.unlockedSkills = {};
