@@ -2706,7 +2706,7 @@
 
     function levelUp() {
         player.level++;
-        player.xpToNextLevel = Math.floor(player.xpToNextLevel * 1.15);
+        player.xpToNextLevel = Math.floor(player.xpToNextLevel * (1.15 + (player.rebirths || 0) * 0.02));
         
         const goldReward = player.level * 20;
         const stonesReward = 1 + Math.floor(player.level / 3);
@@ -4432,7 +4432,7 @@
     }
     
     function handleSurvivalEnd(isDefeat) {
-        const goldEarned = Math.floor(50 * Math.pow(1.1, survivalWave - 1) * (survivalWave-1));
+        const goldEarned = Math.floor(50 * Math.pow(1.1, survivalWave - 1) * (survivalWave-1) * 0.5);
         player.gold += goldEarned;
         
         if (survivalWave -1 > player.survivalHighScore) {
