@@ -453,13 +453,13 @@
         gap: 0.4rem;
     }
     .town-actions {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.3rem;
     }
 
     .button {
-      padding: 0.5rem;
-      font-size: 0.75rem;
+      padding: 0.4rem;
+      font-size: 0.7rem;
       font-weight: bold;
       color: white;
       background-color: var(--button-bg);
@@ -1346,6 +1346,56 @@
     .rank-S { color: var(--rarity-legendary); }
     .rank-SS { color: var(--rarity-mythic); }
     .rank-SSS { color: var(--rarity-eternal); text-shadow: 0 0 8px var(--rarity-eternal); }
+    
+    /* Ultimate Selection Modal */
+    .ultimate-selection-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+    .ultimate-selection-content {
+        background-color: var(--primary-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 380px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        border: 1px solid var(--border-color);
+    }
+    .ultimate-selection-item {
+        background-color: var(--secondary-bg);
+        padding: 0.8rem;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid var(--border-color);
+        transition: all 0.2s;
+    }
+    .ultimate-selection-item.selected {
+        border-color: var(--skill-learnable-bg);
+        box-shadow: 0 0 8px var(--skill-learnable-bg);
+    }
+    .ultimate-selection-item:hover:not(.selected) {
+        background-color: #4a637e;
+        border-color: var(--text-color);
+    }
+    .ultimate-selection-item h3 {
+        margin: 0 0 0.4rem;
+        color: var(--rarity-legendary);
+    }
+    .ultimate-selection-item p {
+        margin: 0;
+        font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
@@ -1364,7 +1414,7 @@
 
     // --- Game Constants ---
     const CRIT_MULTIPLIER = 1.5;
-    const POTION_HEAL_PERCENT = 0.6;
+    const POTION_HEAL_PERCENT = 0.7; // Increased from 0.6
     const POTION_COST = 50;
     const ATTACK_POTION_COST = 100;
     const DEFEAT_GOLD_PENALTY = 0.1;
@@ -1394,8 +1444,8 @@
 
     const DIFFICULTY_SETTINGS = {
         '쉬움': { monsterHpMod: 0.8, monsterAtkMod: 0.8, startGold: 50, startPotions: 5, startAttackPotions: 2, rewardMod: 0.8 },
-        '보통': { monsterHpMod: 1.05, monsterAtkMod: 1.05, startGold: 20, startPotions: 2, startAttackPotions: 1, rewardMod: 1.0 },
-        '어려움': { monsterHpMod: 1.35, monsterAtkMod: 1.35, startGold: 0, startPotions: 1, startAttackPotions: 0, rewardMod: 1.25 },
+        '보통': { monsterHpMod: 1.0, monsterAtkMod: 1.0, startGold: 20, startPotions: 2, startAttackPotions: 1, rewardMod: 1.0 }, // Nerfed from 1.05
+        '어려움': { monsterHpMod: 1.25, monsterAtkMod: 1.25, startGold: 0, startPotions: 1, startAttackPotions: 0, rewardMod: 1.25 }, // Nerfed from 1.35
         '하드코어': { monsterHpMod: 2.0, monsterAtkMod: 2.0, startGold: 0, startPotions: 0, startAttackPotions: 0, rewardMod: 2.0, isHardcore: true },
     };
 
@@ -1816,37 +1866,25 @@
         const xpPercent = player.nextLevelXp > 0 ? (player.xp / player.nextLevelXp) * 100 : 0;
         
         if (inBattle) {
-            const equipmentSlots = ['weapon', 'armor', 'accessory', 'relic'];
-            const equipmentIcons = {'weapon': '⚔️', 'armor': '🛡️', 'accessory': '💍', 'relic': '📜'};
-            let equipmentHtml = '';
-            equipmentSlots.forEach(slot => {
-                const item = getEquippedItem(slot);
-                if (item) {
-                    let name = item.name;
-                    if (item.enhancementLevel > 0) name += `+${item.enhancementLevel}`;
-                    equipmentHtml += `<span class="compact-equipment-item rarity-${item.rarity}">${equipmentIcons[slot]} ${name}</span>`;
-                }
-            });
-
-            let buffsHtml = Object.entries(player.buffs).map(([name, buff]) => 
+             let buffsHtml = Object.entries(player.buffs).map(([name, buff]) => 
                 `<span class="buff-icon">${name} (${buff.duration})</span>`
             ).join('');
-
+            
             return `
                 <div class="player-header">
                     <h2>${player.name} (Lv. ${player.level})</h2>
                     <div class="player-class">${CLASSES[player.className].emoji} ${player.className}</div>
                 </div>
-                <div class="hp-bar-container"><div class="hp-bar" style="width: ${hpPercent}%;"></div></div>
-                <p>${player.currentHp.toLocaleString()} / ${player.maxHp.toLocaleString()}</p>
-                <div class="compact-info-grid" style="grid-template-columns: repeat(3, 1fr); padding-top: 0.4rem; margin-top: 0.4rem; border: none; font-size: 0.8rem;">
+                <div class="hp-bar-container"><div id="player-hp-bar" class="hp-bar" style="width: ${hpPercent}%;"></div></div>
+                <p id="player-hp-text">${player.currentHp.toLocaleString()} / ${player.maxHp.toLocaleString()}</p>
+                <div id="player-stats-grid" class="compact-info-grid" style="grid-template-columns: repeat(5, 1fr); padding-top: 0.4rem; margin-top: 0.4rem; border: none; font-size: 0.8rem;">
                     <span>🗡️ ${player.attackPower.toLocaleString()}</span>
                     <span>🛡️ ${player.defense.toLocaleString()}</span>
                     <span>🎯 ${Math.round(player.critChance * 100)}%</span>
                     <span>💥 ${Math.round(player.critDamage * 100)}%</span>
                     <span>💨 ${Math.round(player.evadeChance * 100)}%</span>
                 </div>
-                ${buffsHtml ? `<div class="player-buffs">${buffsHtml}</div>` : ''}
+                <div id="player-buffs" class="player-buffs">${buffsHtml}</div>
                 <div class="status-effects" id="player-status-effects"></div>
             `;
         } else {
@@ -1915,7 +1953,7 @@
             const ultimateName = ultimateSkill ? ultimateSkill.name : "궁극기";
 
             const ultimateHtml = `
-                <div class="equipment-compact-item">
+                <div id="ultimate-skill-display" class="equipment-compact-item" style="grid-column: 1 / -1; justify-content: center; cursor: pointer;" title="궁극기 변경">
                     <span>🌟</span> <span style="color: var(--rarity-legendary); font-weight: bold;">${ultimateName}</span>
                 </div>
             `;
@@ -2029,6 +2067,70 @@
         });
         
         guideElementsRendered = true;
+    }
+
+    function renderUltimateSelectionModal() {
+        document.getElementById('ultimate-selection-modal')?.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'ultimate-selection-modal';
+        modal.className = 'ultimate-selection-modal';
+
+        const classSkills = [
+            ULTIMATE_SKILLS[player.className],
+            ULTIMATE_SKILLS_2[player.className],
+            ULTIMATE_SKILLS_3[player.className]
+        ].filter(Boolean);
+
+        let modalContent = `
+            <div class="ultimate-selection-content">
+                <h2 style="text-align: center; margin-top: 0;">궁극기 선택</h2>
+        `;
+
+        classSkills.forEach(skill => {
+            if (player.unlockedUltimates.includes(skill.id)) {
+                const isSelected = player.selectedUltimateId === skill.id;
+                const skillLevel = (player.skills[skill.id] || 0) + 1;
+                modalContent += `
+                    <div class="ultimate-selection-item ${isSelected ? 'selected' : ''}" data-skill-id="${skill.id}">
+                        <h3>${skill.name}</h3>
+                        <p>${skill.description(skillLevel)}</p>
+                    </div>
+                `;
+            }
+        });
+
+        modalContent += `</div>`;
+        modal.innerHTML = modalContent;
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+
+        modal.querySelectorAll('.ultimate-selection-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const skillId = e.currentTarget.dataset.skillId;
+                const previousSkillId = player.selectedUltimateId;
+                player.selectedUltimateId = skillId;
+                
+                const skillData = classSkills.find(s => s.id === skillId);
+                if (skillData) {
+                    player.ultimateSkill.id = skillData.id;
+                    player.ultimateSkill.name = skillData.name;
+                    player.ultimateSkill.cooldown = skillData.cooldown;
+                    if (previousSkillId !== skillId) {
+                        player.ultimateSkill.cooldownLeft = 0;
+                    }
+                }
+                saveGameState();
+                modal.remove();
+                renderTownScreen();
+            });
+        });
+
+        document.body.appendChild(modal);
     }
     
     function createStartScreen() {
@@ -2505,7 +2607,7 @@
         
         const baseMonster = { ...monsterPool[Math.floor(Math.random() * monsterPool.length)] };
         
-        const levelMultiplier = 1 + (dungeonLevel - 1) * 0.2 + (dungeonFloor - 1) * 0.05;
+        const levelMultiplier = 1 + (dungeonLevel - 1) * 0.18 + (dungeonFloor - 1) * 0.04; // Nerfed scaling
         const bossMultiplier = isBoss ? 1.5 + (dungeonLevel * 0.1) : 1;
 
         monster = {
@@ -2612,7 +2714,7 @@
                 <div class="character-card player-card">
                     ${renderPlayerCard(false)}
                 </div>
-                <div id="action-buttons" class="town-actions" style="grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                <div id="action-buttons" class="town-actions">
                     <button data-action="enter-dungeon" class="button">던전 입장</button>
                     <button data-action="enter-survival" class="button" style="background-color: var(--survival-color);">서바이벌</button>
                     <button data-action="shop" class="button">상점</button>
@@ -2621,11 +2723,6 @@
                     <button data-action="skill-tree" class="button">스킬</button>
                     <button data-action="quests" class="button">업적 ${permanentQuestBadge}</button>
                     <button data-action="gacha" class="button">뽑기</button>
-                </div>
-                
-                <div id="growth-buttons" class="town-actions" style="margin-top: 0.6rem; width: 100%;">
-                    <h3 style="grid-column: 1 / -1; margin: 0 0 0.4rem 0; font-size: 1rem; color: var(--border-color); text-align: center;">캐릭터 성장</h3>
-                    <button data-action="change-difficulty" class="button">난이도 변경</button>
                     <button data-action="change-class" class="button" ${!isClassChangeUnlocked ? 'disabled' : ''} title="${isClassChangeUnlocked ? '' : '환생 1회 이상 필요'}">직업 변경</button>
                     <button data-action="rebirth" class="button" ${!isRebirthUnlocked ? 'disabled' : ''} title="${isRebirthUnlocked ? '' : `레벨 ${REBIRTH_LEVEL_REQ} 이상 필요`}" style="background-color: var(--rebirth-color);">환생</button>
                     <button data-action="liberation" class="button" ${!isLiberationAvailable ? 'disabled' : ''} title="${isLiberationAvailable ? '해방의 시험 도전' : (player.isLiberated ? '이미 해방됨' : '환생 3회 이상 필요')}" style="background-color: var(--rarity-eternal);">해방</button>
@@ -2639,7 +2736,7 @@
         
         document.getElementById('action-buttons')?.addEventListener('click', (e) => {
             const action = e.target.closest('button')?.dataset.action;
-            if (!action) return;
+            if (!action || e.target.closest('button').disabled) return;
 
             switch (action) {
                 case 'enter-dungeon':
@@ -2666,15 +2763,6 @@
                 case 'skill-tree': renderSkillTreeScreen(); break;
                 case 'quests': renderQuestScreen(); break;
                 case 'gacha': renderGachaScreen(); break;
-            }
-        });
-
-        document.getElementById('growth-buttons')?.addEventListener('click', (e) => {
-            const action = e.target.closest('button')?.dataset.action;
-            if (!action || e.target.closest('button').disabled) return;
-            
-            switch(action) {
-                case 'change-difficulty': renderDifficultyChangeScreen(); break;
                 case 'change-class': createClassChangeScreen(); break;
                 case 'rebirth':
                 case 'liberation':
@@ -2691,9 +2779,8 @@
                 alert('직업 변경은 환생 후에 가능합니다.');
             }
         });
-         document.querySelector('.dungeon-progress')?.addEventListener('click', () => {
-             renderDifficultyChangeScreen();
-         });
+         document.querySelector('.dungeon-progress')?.addEventListener('click', renderDifficultyChangeScreen);
+         document.getElementById('ultimate-skill-display')?.addEventListener('click', renderUltimateSelectionModal);
     }
 
     function changePlayerName() {
@@ -2871,7 +2958,7 @@
                 <div class="shop-items" style="flex-grow: 0; margin-bottom: 1rem;">
                     <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem;">소모품</h3>
                     <div class="shop-item">
-                        <span>🧪 HP 물약 (HP 60% 회복)</span>
+                        <span>🧪 HP 물약 (HP 70% 회복)</span>
                         <button class="button buy-potion-btn" data-potion-type="hp">💰 ${POTION_COST}</button>
                     </div>
                     <div class="shop-item">
@@ -3543,7 +3630,18 @@
                     const cost = skill.cost(currentLevel);
                     if (player.gold >= cost) {
                         player.gold -= cost;
-                        player.skills[skillId] = currentLevel + 1;
+                        const newLevel = currentLevel + 1;
+                        player.skills[skillId] = newLevel;
+
+                        if (newLevel === 1) { // Unlock ultimate on first learn
+                            const allUltimateSkills = [ ...Object.values(ULTIMATE_SKILLS_2), ...Object.values(ULTIMATE_SKILLS_3) ];
+                            const ultData = allUltimateSkills.find(u => u.id === skillId);
+                            if (ultData && !player.unlockedUltimates.includes(skillId)) {
+                                player.unlockedUltimates.push(skillId);
+                                alert(`새로운 궁극기 [${ultData.name}]을(를) 해금했습니다! 마을에서 장착할 수 있습니다.`);
+                            }
+                        }
+                        
                         updatePlayerStats();
                         renderSkillTreeScreen();
                     } else {
@@ -3743,9 +3841,9 @@
                 <div class="character-card monster-card">
                     <h2>${monster.emoji} ${monster.name} ${monster.isBoss ? ' (보스)' : ''}</h2>
                     <div class="hp-bar-container">
-                        <div class="hp-bar" style="width: ${monster.currentHp / monster.maxHp * 100}%;"></div>
+                        <div id="monster-hp-bar" class="hp-bar" style="width: ${monster.currentHp / monster.maxHp * 100}%;"></div>
                     </div>
-                    <p>${monster.currentHp.toLocaleString()} / ${monster.maxHp.toLocaleString()}</p>
+                    <p id="monster-hp-text">${monster.currentHp.toLocaleString()} / ${monster.maxHp.toLocaleString()}</p>
                     <div class="status-effects" id="monster-status-effects"></div>
                 </div>
 
@@ -3757,9 +3855,9 @@
 
                 <div id="action-buttons">
                     <button data-action="attack" class="button">공격</button>
-                    <button data-action="use-potion" class="button" ${isSurvival || isLiberation ? 'disabled' : ''}>물약 (${player.potions})</button>
-                    <button data-action="use-attack-potion" class="button" ${isSurvival || isLiberation ? 'disabled' : ''}>공격 물약 (${player.attackPotions})</button>
-                    <button data-action="ultimate-skill" class="button" ${player.ultimateSkill.cooldownLeft > 0 ? 'disabled' : ''}>
+                    <button id="potion-button" data-action="use-potion" class="button" ${isSurvival || isLiberation ? 'disabled' : ''}>물약 (${player.potions})</button>
+                    <button id="attack-potion-button" data-action="use-attack-potion" class="button" ${isSurvival || isLiberation ? 'disabled' : ''}>공격 물약 (${player.attackPotions})</button>
+                    <button id="ultimate-skill-button" data-action="ultimate-skill" class="button" ${player.ultimateSkill.cooldownLeft > 0 ? 'disabled' : ''}>
                        ${ultimateSkill ? ultimateSkill.name : '궁극기'} ${player.ultimateSkill.cooldownLeft > 0 ? `(${Math.ceil(player.ultimateSkill.cooldownLeft)})` : ''}
                     </button>
                     ${!isSurvival && !isLiberation ? `<button data-action="escape" class="button">마을로 돌아가기</button>` : ''}
@@ -3779,7 +3877,7 @@
         if (player.statusEffects.stun) {
             document.getElementById('action-buttons').querySelectorAll('button').forEach(b => b.disabled = true);
             setTimeout(() => {
-                if (currentScreen !== 'BATTLE' && currentScreen !== 'SURVIVAL' && currentScreen !== 'LIBERATION_BATTLE') return;
+                if (!player.statusEffects.stun || (currentScreen !== 'BATTLE' && currentScreen !== 'SURVIVAL' && currentScreen !== 'LIBERATION_BATTLE')) return;
                 addMessage(`${player.name}님은 기절해서 움직일 수 없습니다!`, 'rarity-mythic');
                 
                 applyStatusEffects(player, 'player');
@@ -3792,6 +3890,73 @@
             }, 500);
         }
     }
+    
+    function updateBattleUI(isSurvival = false, isLiberation = false) {
+        if (!player || !monster || (currentScreen !== 'BATTLE' && currentScreen !== 'SURVIVAL' && currentScreen !== 'LIBERATION_BATTLE')) return;
+
+        // Update Monster UI
+        const monsterHpPercent = monster.maxHp > 0 ? (monster.currentHp / monster.maxHp) * 100 : 0;
+        document.getElementById('monster-hp-bar').style.width = `${monsterHpPercent}%`;
+        document.getElementById('monster-hp-text').textContent = `${monster.currentHp.toLocaleString()} / ${monster.maxHp.toLocaleString()}`;
+        updateStatusEffectIcons('monster-status-effects', monster.statusEffects);
+
+        // Update Player UI
+        const playerHpPercent = player.maxHp > 0 ? (player.currentHp / player.maxHp) * 100 : 0;
+        document.getElementById('player-hp-bar').style.width = `${playerHpPercent}%`;
+        document.getElementById('player-hp-text').textContent = `${player.currentHp.toLocaleString()} / ${player.maxHp.toLocaleString()}`;
+        
+        const statsGrid = document.getElementById('player-stats-grid');
+        if (statsGrid) {
+            statsGrid.innerHTML = `
+                <span>🗡️ ${player.attackPower.toLocaleString()}</span>
+                <span>🛡️ ${player.defense.toLocaleString()}</span>
+                <span>🎯 ${Math.round(player.critChance * 100)}%</span>
+                <span>💥 ${Math.round(player.critDamage * 100)}%</span>
+                <span>💨 ${Math.round(player.evadeChance * 100)}%</span>
+            `;
+        }
+        
+        const buffsContainer = document.getElementById('player-buffs');
+        if (buffsContainer) {
+            buffsContainer.innerHTML = Object.entries(player.buffs).map(([name, buff]) => 
+                `<span class="buff-icon">${name} (${buff.duration})</span>`
+            ).join('');
+        }
+        updateStatusEffectIcons('player-status-effects', player.statusEffects);
+
+        // Update Action Buttons
+        const potionButton = document.getElementById('potion-button');
+        if (potionButton) potionButton.textContent = `물약 (${player.potions})`;
+        
+        const attackPotionButton = document.getElementById('attack-potion-button');
+        if (attackPotionButton) attackPotionButton.textContent = `공격 물약 (${player.attackPotions})`;
+        
+        const ultimateButton = document.getElementById('ultimate-skill-button');
+        if (ultimateButton) {
+            const skillCollection = [ULTIMATE_SKILLS, ULTIMATE_SKILLS_2, ULTIMATE_SKILLS_3];
+            const ultimateSkill = skillCollection
+                .map(sc => sc[player.className])
+                .filter(Boolean)
+                .find(s => s.id === player.selectedUltimateId);
+            ultimateButton.disabled = player.ultimateSkill.cooldownLeft > 0;
+            ultimateButton.textContent = `${ultimateSkill ? ultimateSkill.name : '궁극기'} ${player.ultimateSkill.cooldownLeft > 0 ? `(${Math.ceil(player.ultimateSkill.cooldownLeft)})` : ''}`;
+        }
+
+        const isStunned = !!player.statusEffects.stun;
+        document.getElementById('action-buttons').querySelectorAll('button').forEach(b => {
+             // Let specific logic handle disabling for ultimate cooldown
+            if (b.dataset.action !== 'ultimate-skill') {
+                b.disabled = isStunned;
+            }
+        });
+
+        // Re-apply survival/liberation disabled state if not stunned
+        if(!isStunned){
+            if(potionButton && (isSurvival || isLiberation)) potionButton.disabled = true;
+            if(attackPotionButton && (isSurvival || isLiberation)) attackPotionButton.disabled = true;
+        }
+    }
+
 
     // --- Data Management ---
     function saveGameState() {
@@ -3905,7 +4070,7 @@
         }
 
         if (playerTurnHandled) {
-            renderBattleScreen(isSurvival, isLiberation);
+            updateBattleUI(isSurvival, isLiberation);
             
             if (monster.currentHp > 0) {
                 applyStatusEffects(player, 'player');
@@ -3915,7 +4080,7 @@
                     if (!player.statusEffects.stun) {
                          setTimeout(() => monsterTurn(isSurvival, isLiberation), 300);
                     } else {
-                         setTimeout(() => renderBattleScreen(isSurvival, isLiberation), 300);
+                         setTimeout(() => updateBattleUI(isSurvival, isLiberation), 300);
                     }
                 }
             } else {
@@ -3962,9 +4127,20 @@
         
         if (!skillData) return;
 
-        const skillLevel = (player.skills[skillData.id] || 0) + 1;
+        let skillLevel = 1;
+        const baseUltimateIds = Object.values(ULTIMATE_SKILLS).map(s => s.id);
+        if (baseUltimateIds.includes(skillData.id)) {
+            const enhancementSkillId = {
+                'w_ultimate': 'w_ult_1',
+                'm_ultimate': 'm_ult_1',
+                'a_ultimate': 'a_ult_1'
+            }[skillData.id];
+            skillLevel = 1 + (player.skills[enhancementSkillId] || 0);
+        } else {
+            skillLevel = 1 + (player.skills[skillData.id] || 0);
+        }
+        
         const effect = skillData.effect(skillLevel);
-
         addMessage(effect.message, 'rarity-legendary');
 
         if (effect.damageMultiplier || effect.initialDamageMultiplier) {
@@ -4067,7 +4243,10 @@
             addMessage(`${survivalWave} 웨이브 시작!`, 'rarity-legendary');
             player.currentHp = Math.min(player.maxHp, player.currentHp + Math.round(player.maxHp * 0.1));
             monster = createSurvivalMonster(survivalWave);
-            setTimeout(() => renderBattleScreen(true, false), 1000);
+            setTimeout(() => {
+                 currentScreen = 'SURVIVAL'; // Ensure screen state is correct before updating UI
+                 renderBattleScreen(true, false);
+            }, 1000);
             return;
         }
 
@@ -4118,7 +4297,7 @@
         if (DIFFICULTY_SETTINGS[currentDifficulty].isHardcore) {
             alert('사망했습니다. 하드코어 모드에서는 모든 진행 상황이 초기화됩니다.');
             deleteSaveData(false);
-            createStartScreen();
+            window.location.reload();
             return;
         }
 
@@ -4160,7 +4339,7 @@
             player.ultimateSkill.cooldownLeft = Math.max(0, player.ultimateSkill.cooldownLeft - cooldownReduction);
         }
         
-        renderBattleScreen(isSurvival, isLiberation);
+        updateBattleUI(isSurvival, isLiberation);
     }
 
     function applyStatusEffect(target, effect) {
@@ -4215,87 +4394,99 @@
             character.statusEffects[type].duration--;
             if (character.statusEffects[type].duration <= 0) {
                 delete character.statusEffects[type];
-                addMessage(`${character.name || character.emoji}의 [${STATUS_EFFECT_DEFINITIONS[type].name}] 효과가 사라졌습니다.`);
             }
         }
     }
-    
-    function applyBuff(character, buffName, buffData) {
-        character.buffs[buffName] = { ...buffData };
-        if(character === player) {
-            updatePlayerStats();
-        }
-    }
-    
+
     function updateBuffs(character) {
-        let statsChanged = false;
         for (const buffName in character.buffs) {
-            character.buffs[buffName].duration--;
-            if (character.buffs[buffName].duration <= 0) {
+            const buff = character.buffs[buffName];
+            buff.duration--;
+            if (buff.duration <= 0) {
                 delete character.buffs[buffName];
-                addMessage(`${character.name}의 [${buffName}] 효과가 사라졌습니다.`);
-                statsChanged = true;
+                addMessage(`${character.name || '플레이어'}의 [${buffName}] 효과가 사라졌습니다.`);
             }
         }
-        if (statsChanged && character === player) {
-            updatePlayerStats();
-        }
     }
 
-    function startLiberationChallenge() {
-        if(confirm("해방의 시험은 매우 어렵습니다. 모든 물약을 사용할 수 없으며, 패배 시 마을로 돌아갑니다. 도전하시겠습니까?")) {
-            currentScreen = 'LIBERATION_BATTLE';
-            monster = {
-                name: '해방의 수호자',
-                emoji: '👑',
-                maxHp: 5000 + 1000 * player.rebirths,
-                currentHp: 5000 + 1000 * player.rebirths,
-                attack: 200 + 50 * player.rebirths,
-                defense: 100 + 20 * player.rebirths,
-                xp: 50000,
-                gold: 100000,
-                isBoss: true,
-                isLiberationBoss: true,
-                statusEffects: {},
-                onHitEffect: { type: 'vulnerable', chance: 0.5, duration: 2, potency: 0.3 }
-            };
-            player.currentHp = player.maxHp;
-            renderBattleScreen(false, true);
+    function applyBuff(target, buffName, buffData) {
+        if (target.buffs[buffName]) {
+            target.buffs[buffName].duration = Math.max(target.buffs[buffName].duration, buffData.duration);
+        } else {
+            target.buffs[buffName] = { ...buffData };
         }
+        updatePlayerStats();
     }
+    
+    function updateQuestProgress(type, value, targetName = null) {
+        if (!player || !player.permanentQuests) return;
+        player.permanentQuests.forEach(q => {
+            if (q.completed) return;
 
-    function updateQuestProgress(type, value, name = '') {
-        player.permanentQuests.forEach(quest => {
-            if (!quest.completed && quest.type === type) {
-                switch(type) {
-                    case 'REACH_LEVEL':
-                        quest.progress = Math.max(quest.progress, value);
-                        break;
-                    case 'DEFEAT_BOSS':
-                        if (quest.targetName === name) quest.progress++;
-                        break;
-                    case 'ENHANCE_SUCCESS':
-                        quest.progress = Math.max(quest.progress, value);
-                        break;
-                    case 'COLLECT_GOLD':
-                    case 'USE_ULTIMATE':
-                        quest.progress += value;
-                        break;
-                    case 'REBIRTH':
-                    case 'TRANSCEND':
-                         quest.progress = Math.max(quest.progress, value);
-                         break;
-                    case 'LIBERATION':
-                        quest.progress = 1;
-                        break;
-                }
+            let progressMade = false;
+            switch (q.type) {
+                case 'REACH_LEVEL':
+                    if (type === 'REACH_LEVEL') {
+                        q.progress = Math.max(q.progress, value);
+                        progressMade = true;
+                    }
+                    break;
+                case 'DEFEAT_BOSS':
+                    if (type === 'DEFEAT_BOSS' && q.targetName === targetName) {
+                        q.progress += value || 1;
+                        progressMade = true;
+                    }
+                    break;
+                case 'ENHANCE_SUCCESS':
+                    if (type === 'ENHANCE_SUCCESS') {
+                        q.progress = Math.max(q.progress, value);
+                        progressMade = true;
+                    }
+                    break;
+                case 'COLLECT_GOLD':
+                    if (type === 'COLLECT_GOLD') {
+                        q.progress += value;
+                        progressMade = true;
+                    }
+                    break;
+                case 'REBIRTH':
+                    if (type === 'REBIRTH') {
+                        q.progress = Math.max(q.progress, value);
+                        progressMade = true;
+                    }
+                    break;
+                case 'TRANSCEND':
+                     if (type === 'TRANSCEND') {
+                        if (q.id === 'transcend_1') {
+                            q.progress = Math.max(q.progress, 1);
+                        } else if (q.id === 'transcend_5') {
+                            q.progress = Math.max(q.progress, value);
+                        }
+                        progressMade = true;
+                    }
+                    break;
+                case 'LIBERATION':
+                    if (type === 'LIBERATION') {
+                        q.progress += value;
+                        progressMade = true;
+                    }
+                    break;
+                case 'USE_ULTIMATE':
+                    if (type === 'USE_ULTIMATE') {
+                        q.progress += value;
+                        progressMade = true;
+                    }
+                    break;
             }
         });
     }
 
-    window.onload = () => {
-        createStartScreen();
-    };
+    // --- Game Initialization ---
+    if (loadGameState()) {
+      renderTownScreen();
+    } else {
+      createStartScreen();
+    }
   </script>
 </body>
 </html>
