@@ -654,6 +654,13 @@
         flex-direction: column;
         overflow: hidden;
     }
+    
+    .blacksmith-screen .inventory-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .blacksmith-screen .item-card .item-name {
+        font-size: 0.75rem;
+    }
 
     .enhancement-slots {
         display: grid;
@@ -738,8 +745,8 @@
         color: white;
         text-align: center;
         font-weight: bold;
-        font-size: 0.75rem;
-        padding: 1rem 0 0.2rem 0;
+        font-size: 0.7rem;
+        padding: 0.8rem 0 0.2rem 0;
         pointer-events: none;
     }
 
@@ -1162,17 +1169,18 @@
     }
     .filter-checkbox-group {
         display: flex;
-        gap: 1rem;
+        flex-wrap: wrap;
+        gap: 0.6rem;
         justify-content: center;
     }
     .filter-checkbox-group label {
         display: flex;
         align-items: center;
         gap: 0.3rem;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         cursor: pointer;
         background: var(--secondary-bg);
-        padding: 0.3rem 0.6rem;
+        padding: 0.3rem 0.5rem;
         border-radius: 6px;
         border: 1px solid var(--border-color);
     }
@@ -1577,7 +1585,7 @@
     let shopFilterRarity = 'all';
     let blacksmithMode = 'enhance';
     let synthesisSelection = [null, null]; // { item, inventoryIndex }
-    let batchDisenchantFilters = { common: false, uncommon: false, rare: false };
+    let batchDisenchantFilters = { rarities: { common: false, uncommon: false, rare: false }, types: { weapon: false, armor: false, accessory: false, relic: false } };
     let questScreenMode = 'daily';
     let guideElementsRendered = false;
     
@@ -3269,12 +3277,15 @@
         } else if (blacksmithMode === 'batch-disenchant') {
             document.querySelectorAll('.filter-checkbox-group input').forEach(checkbox => {
                 checkbox.addEventListener('change', (e) => {
-                    const rarity = e.target.dataset.rarity;
-                    batchDisenchantFilters[rarity] = e.target.checked;
-                    renderBlacksmithScreen();
+                    const group = e.target.dataset.filterGroup;
+                    const key = e.target.dataset.filterKey;
+                    if (batchDisenchantFilters[group]) {
+                        batchDisenchantFilters[group][key] = e.target.checked;
+                        renderBlacksmithScreen();
+                    }
                 });
             });
-             document.getElementById('batch-disenchant-button')?.addEventListener('click', handleBatchDisenchant);
+            document.getElementById('batch-disenchant-button')?.addEventListener('click', handleBatchDisenchant);
         } else if (blacksmithMode === 'synthesis') {
             document.querySelectorAll('.inventory-grid.synthesis-mode .item-card').forEach(card => {
                 card.addEventListener('click', (e) => {
@@ -3624,8 +3635,20 @@
             let stones = 0;
             let dust = 0;
             let count = 0;
+            const selectedRarities = Object.keys(batchDisenchantFilters.rarities).filter(r => batchDisenchantFilters.rarities[r]);
+            const selectedTypes = Object.keys(batchDisenchantFilters.types).filter(t => batchDisenchantFilters.types[t]);
+
+            if (selectedRarities.length === 0 && selectedTypes.length === 0) {
+                return { stones, dust, count };
+            }
+
             player.inventory.forEach(item => {
-                if (!item.isLocked && batchDisenchantFilters[item.rarity]) {
+                if (item.isLocked) return;
+
+                const rarityMatch = selectedRarities.length === 0 || selectedRarities.includes(item.rarity);
+                const typeMatch = selectedTypes.length === 0 || selectedTypes.includes(item.type);
+
+                if (rarityMatch && typeMatch) {
                     const itemYield = getDisenchantYield(item);
                     stones += itemYield.stones;
                     dust += itemYield.dust;
@@ -3636,24 +3659,34 @@
         };
 
         const summary = getSummary();
+        const typeNames = { weapon: '무기', armor: '방어구', accessory: '장신구', relic: '성물' };
 
         return `
             <div class="batch-disenchant-container">
                 <div class="batch-disenchant-filters">
-                    <h3>분해할 아이템 등급 선택</h3>
+                    <h3>분해할 아이템 등급</h3>
                     <div class="filter-checkbox-group">
                         <label>
-                            <input type="checkbox" data-rarity="common" ${batchDisenchantFilters.common ? 'checked' : ''}>
+                            <input type="checkbox" data-filter-group="rarities" data-filter-key="common" ${batchDisenchantFilters.rarities.common ? 'checked' : ''}>
                             <span class="rarity-common">일반</span>
                         </label>
                         <label>
-                            <input type="checkbox" data-rarity="uncommon" ${batchDisenchantFilters.uncommon ? 'checked' : ''}>
+                            <input type="checkbox" data-filter-group="rarities" data-filter-key="uncommon" ${batchDisenchantFilters.rarities.uncommon ? 'checked' : ''}>
                             <span class="rarity-uncommon">고급</span>
                         </label>
                         <label>
-                            <input type="checkbox" data-rarity="rare" ${batchDisenchantFilters.rare ? 'checked' : ''}>
+                            <input type="checkbox" data-filter-group="rarities" data-filter-key="rare" ${batchDisenchantFilters.rarities.rare ? 'checked' : ''}>
                             <span class="rarity-rare">희귀</span>
                         </label>
+                    </div>
+                    <h3 style="margin-top: 0.8rem;">분해할 아이템 종류</h3>
+                    <div class="filter-checkbox-group">
+                        ${Object.keys(batchDisenchantFilters.types).map(typeKey => `
+                            <label>
+                                <input type="checkbox" data-filter-group="types" data-filter-key="${typeKey}" ${batchDisenchantFilters.types[typeKey] ? 'checked' : ''}>
+                                <span>${typeNames[typeKey]}</span>
+                            </label>
+                        `).join('')}
                     </div>
                 </div>
                 <div class="batch-disenchant-summary">
@@ -3668,12 +3701,25 @@
     }
 
     function handleBatchDisenchant() {
+        const selectedRarities = Object.keys(batchDisenchantFilters.rarities).filter(r => batchDisenchantFilters.rarities[r]);
+        const selectedTypes = Object.keys(batchDisenchantFilters.types).filter(t => batchDisenchantFilters.types[t]);
+        
+        if (selectedRarities.length === 0 && selectedTypes.length === 0) {
+            alert("분해할 아이템의 등급이나 종류를 하나 이상 선택해주세요.");
+            return;
+        }
+
         const itemsToDisenchant = player.inventory.filter(item => {
-            return !item.isLocked && batchDisenchantFilters[item.rarity];
+            if (item.isLocked) return false;
+            
+            const rarityMatch = selectedRarities.length === 0 || selectedRarities.includes(item.rarity);
+            const typeMatch = selectedTypes.length === 0 || selectedTypes.includes(item.type);
+            
+            return rarityMatch && typeMatch;
         });
 
         if (itemsToDisenchant.length === 0) {
-            alert("선택된 등급의 분해할 아이템이 없습니다.");
+            alert("선택된 조건에 맞는 분해할 아이템이 없습니다.");
             return;
         }
 
@@ -4474,6 +4520,9 @@
                 player.rebirthUpgrades.item_drop_rate = 0;
                 player.rebirthUpgrades.stone_gain = 0;
                 player.rebirthUpgrades.rare_item_chance = 0;
+            }
+            if (!batchDisenchantFilters.rarities) { // Older save data structure
+                batchDisenchantFilters = { rarities: batchDisenchantFilters, types: { weapon: false, armor: false, accessory: false, relic: false } };
             }
 
 
