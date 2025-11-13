@@ -270,14 +270,16 @@
     }
     .player-equipment {
         grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: nowrap;
         gap: 0.4rem;
         margin-top: 0.4rem;
         padding-top: 0.4rem;
         border-top: 1px solid var(--border-color);
         font-size: 0.75rem;
         text-align: center;
+        align-items: center;
     }
 
     .ultimate-skill-display {
@@ -510,7 +512,7 @@
 
     .equipment-slots {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 0.8rem;
         width: 100%;
         margin: 0.8rem 0 0 0;
@@ -664,7 +666,7 @@
 
     .enhancement-slots {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 0.8rem;
         width: 100%;
         margin-bottom: 0.8rem;
@@ -1485,6 +1487,10 @@
         { id: 703, name: "시간 왜곡 단검", type: 'weapon', stats: { attackPower: 35, critChance: 0.1, evadeChance: 0.1 }, rarity: 'ultimate', cost: 999999, classRestriction: ['암살자'], isGachaOnly: true },
         { id: 704, name: "별의 노래", type: 'weapon', stats: { attackPower: 45, critChance: 0.20 }, rarity: 'ultimate', cost: 999999, classRestriction: ['궁수'], isGachaOnly: true },
         { id: 705, name: "창조신의 갑주", type: 'armor', stats: { defense: 25, maxHp: 250, evadeChance: 0.05 }, rarity: 'ultimate', cost: 999999, classRestriction: ['전사', '암살자', '마법사', '궁수'], isGachaOnly: true },
+        { id: 706, name: "격노의 학살자", type: 'weapon', stats: { attackPower: 45, critDamage: 0.20, attackPowerPercent: 0.05 }, rarity: 'ultimate', cost: 999999, classRestriction: ['전사'], isGachaOnly: true },
+        { id: 707, name: "아포칼립스 스펠북", type: 'weapon', stats: { attackPower: 65, maxHpPercent: 0.10 }, rarity: 'ultimate', cost: 999999, classRestriction: ['마법사'], isGachaOnly: true },
+        { id: 708, name: "무한의 그림자", type: 'weapon', stats: { attackPower: 40, critChance: 0.12, evadeChance: 0.12 }, rarity: 'ultimate', cost: 999999, classRestriction: ['암살자'], isGachaOnly: true },
+        { id: 709, name: "천궁의 심판", type: 'weapon', stats: { attackPower: 50, critChance: 0.15, critDamage: 0.15 }, rarity: 'ultimate', cost: 999999, classRestriction: ['궁수'], isGachaOnly: true },
 
         // Accessories
         { id: 501, name: "힘의 반지", type: 'accessory', stats: { attackPower: 5 }, rarity: 'rare', cost: 300, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
@@ -1493,12 +1499,6 @@
         { id: 504, "name": "필살의 반지", type: 'accessory', stats: { critChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
         { id: 505, "name": "그림자 망토", type: 'accessory', stats: { evadeChance: 0.05 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
         { id: 506, "name": "현자의 돌", type: 'accessory', stats: { attackPower: 8, maxHp: 80 }, rarity: 'legendary', cost: 5000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
-        
-        // Relics
-        { id: 801, name: "거인의 심장", type: 'relic', stats: { maxHp: 80, defense: 3 }, rarity: 'rare', cost: 400, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
-        { id: 802, name: "광전사의 징표", type: 'relic', stats: { attackPower: 10, critDamage: 0.10 }, rarity: 'legendary', cost: 6000, classRestriction: ['전사', '마법사', '암살자', '궁수'] },
-        { id: 803, name: "고대 현자의 눈", type: 'relic', stats: { attackPowerPercent: 0.05, maxHpPercent: 0.05, defensePercent: 0.05 }, rarity: 'mythic', cost: 99999, classRestriction: ['전사', '마법사', '암살자', '궁수'], isGachaOnly: true },
-        { id: 804, name: "흡혈의 성배", type: 'relic', stats: { attackPower: 5, critChance: 0.02 }, rarity: 'legendary', cost: 6000, classRestriction: ['전사', '마법사', '암살자', '궁수'], special: 'lifesteal_2%' }, // Special property to be handled
     ];
 
     const SYNTHESIS_RECIPES = [
@@ -1537,10 +1537,6 @@
             rare: [ { id: 'ac_r_atk', description: '공격력 +8', effects: { attackPower: 8 } }, { id: 'ac_r_hp', description: '최대 HP +40', effects: { maxHp: 40 } } ],
             legendary: [ { id: 'ac_l_crit', description: '치명타 +3%', effects: { critChance: 0.03 } }, { id: 'ac_l_evade', description: '회피 +3%', effects: { evadeChance: 0.03 } }, { id: 'ac_l_all', description: '공격력 +5, 방어력 +5', effects: { attackPower: 5, defense: 5 } } ]
         },
-        relic: {
-            rare: [ { id: 're_r_hp_def', description: 'HP +40, 방어력 +2', effects: { maxHp: 40, defense: 2 } } ],
-            legendary: [ { id: 're_l_crit_dmg', description: '치명타 피해 +8%', effects: { critDamage: 0.08 } }, { id: 're_l_atk_hp', description: '공격력 +10, HP +50', effects: { attackPower: 10, maxHp: 50 } } ]
-        }
     };
 
     const QUEST_POOL = [
@@ -1585,7 +1581,7 @@
     let shopFilterRarity = 'all';
     let blacksmithMode = 'enhance';
     let synthesisSelection = [null, null]; // { item, inventoryIndex }
-    let batchDisenchantFilters = { rarities: { common: false, uncommon: false, rare: false }, types: { weapon: false, armor: false, accessory: false, relic: false } };
+    let batchDisenchantFilters = { rarities: { common: false, uncommon: false, rare: false }, types: { weapon: false, armor: false, accessory: false } };
     let questScreenMode = 'daily';
     let guideElementsRendered = false;
     
@@ -1601,10 +1597,10 @@
     ];
 
     const bossList = [
-        { name: '동굴 트롤', emoji: '🗿', baseHp: 100, baseAttack: 18, xp: 200, gold: 100, lootTable: [201, 206, 205, 801], onHitEffect: {type: 'stun', chance: 0.2, duration: 1, potency: 0} },
+        { name: '동굴 트롤', emoji: '🗿', baseHp: 100, baseAttack: 18, xp: 200, gold: 100, lootTable: [201, 206, 205], onHitEffect: {type: 'stun', chance: 0.2, duration: 1, potency: 0} },
         { name: '거대 골렘', emoji: '🤖', baseHp: 150, baseAttack: 23, xp: 300, gold: 150, lootTable: [202, 204, 303], onHitEffect: {type: 'vulnerable', chance: 0.5, duration: 2, potency: 0.25} },
         { name: '흑기사', emoji: '♞', baseHp: 200, baseAttack: 28, xp: 450, gold: 220, lootTable: [301, 303, 307, 308, 501], onHitEffect: {type: 'weaken', chance: 0.4, duration: 3, potency: 0.2} },
-        { name: '드래곤', emoji: '🐲', baseHp: 270, baseAttack: 34, xp: 600, gold: 300, lootTable: [301, 302, 401, 802], onHitEffect: {type: 'burn', chance: 0.7, duration: 3, potency: 15} },
+        { name: '드래곤', emoji: '🐲', baseHp: 270, baseAttack: 34, xp: 600, gold: 300, lootTable: [301, 302, 401], onHitEffect: {type: 'burn', chance: 0.7, duration: 3, potency: 15} },
     ];
     
     // --- Helper Functions ---
@@ -1960,7 +1956,7 @@
         recalculatePlayerStats();
         player.hp = player.maxHp;
 
-        messageLog.unshift(`✨ 직업을 ${newClass}(으)로 변경했습니다!`);
+        alert(`✨ 직업을 ${newClass}(으)로 성공적으로 변경했습니다!`);
         saveGameState();
         renderTownScreen();
     }
@@ -1992,7 +1988,7 @@
         ultimateSkill2Cooldown: 0,
         activeBuffs: [],
         statusEffects: [],
-        equipment: { weapon: null, armor: null, accessory: null, relic: null },
+        equipment: { weapon: null, armor: null, accessory: null },
         inventory: [],
         unlockedSkills: {},
         permanentQuests,
@@ -2268,7 +2264,6 @@
                     <span class="rarity-${p.equipment.weapon?.rarity || 'common'}">⚔️ ${getItemDisplayName(p.equipment.weapon)}</span>
                     <span class="rarity-${p.equipment.armor?.rarity || 'common'}">🛡️ ${getItemDisplayName(p.equipment.armor)}</span>
                     <span class="rarity-${p.equipment.accessory?.rarity || 'common'}">💍 ${getItemDisplayName(p.equipment.accessory)}</span>
-                    <span class="rarity-${p.equipment.relic?.rarity || 'common'}">✨ ${getItemDisplayName(p.equipment.relic)}</span>
                 </div>
             `;
             const ultimateSkillHtml = currentScreen !== 'TOWN' ? '' : `
@@ -2774,7 +2769,7 @@
     function renderShopScreen() {
         currentScreen = 'SHOP';
         renderPermanentUI();
-        const itemsForSale = ITEM_DATABASE.filter(item => (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory' || item.type === 'relic') && !item.isGachaOnly);
+        const itemsForSale = ITEM_DATABASE.filter(item => (item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory') && !item.isGachaOnly);
         
         const filteredItems = itemsForSale.filter(item => {
             const typeMatch = shopFilterType === 'all' || item.type === shopFilterType;
@@ -2794,7 +2789,7 @@
             <div class="shop-item">
                 <div>
                     <span class="rarity-${item.rarity}">${item.name}</span>
-                    <span class="item-class">(${item.type === 'accessory' ? '장신구' : (item.type === 'relic' ? '성물' : item.classRestriction.join(', '))})</span>
+                    <span class="item-class">(${item.type === 'accessory' ? '장신구' : item.classRestriction.join(', ')})</span>
                 </div>
                 <button class="button buy-item-btn" data-item-id="${item.id}" ${player.gold < item.cost ? 'disabled' : ''}>${item.cost} G</button>
             </div>
@@ -2807,7 +2802,6 @@
                     <button class="filter-btn ${shopFilterType === 'weapon' ? 'active' : ''}" data-filter-type="type" data-filter-value="weapon">무기</button>
                     <button class="filter-btn ${shopFilterType === 'armor' ? 'active' : ''}" data-filter-type="type" data-filter-value="armor">방어구</button>
                     <button class="filter-btn ${shopFilterType === 'accessory' ? 'active' : ''}" data-filter-type="type" data-filter-value="accessory">장신구</button>
-                    <button class="filter-btn ${shopFilterType === 'relic' ? 'active' : ''}" data-filter-type="type" data-filter-value="relic">성물</button>
                 </div>
                 <div class="filter-group">
                     <button class="filter-btn ${shopFilterRarity === 'all' ? 'active' : ''}" data-filter-type="rarity" data-filter-value="all">전체</button>
@@ -2901,7 +2895,8 @@
     function handlePlayerDefeat() {
         const goldLost = Math.floor(player.gold * DEFEAT_GOLD_PENALTY);
         player.gold -= goldLost;
-        messageLog = [`골드 ${goldLost}를 잃었다...`, '정신을 차려보니 마을이었다.', `던전 ${dungeonFloor}층에서 쓰러졌다.`];
+        
+        alert(`던전 ${dungeonFloor}층에서 쓰러졌습니다... 소지 골드의 10% (${goldLost}G)를 잃고 마을로 돌아갑니다.`);
         
         player.activeBuffs = [];
         player.statusEffects = [];
@@ -2973,10 +2968,6 @@
                     <div class="slot-container">
                         <h3>장신구</h3>
                         ${createItemCard(player.equipment.accessory, 'accessory')}
-                    </div>
-                    <div class="slot-container">
-                        <h3>성물</h3>
-                        ${createItemCard(player.equipment.relic, 'relic')}
                     </div>
                 </div>
                 <h2>인벤토리 (${player.inventory.length})</h2>
@@ -3152,7 +3143,7 @@
             return { attackPower: Math.ceil(2 * rarityMultiplier) };
         } else if (item.type === 'armor') {
             return { defense: Math.ceil(1 * rarityMultiplier), maxHp: Math.ceil(5 * rarityMultiplier) };
-        } else if (item.type === 'accessory' || item.type === 'relic') {
+        } else if (item.type === 'accessory') {
             const increases = {};
             if (item.stats.attackPower) increases.attackPower = Math.ceil(1 * rarityMultiplier);
             if (item.stats.maxHp) increases.maxHp = Math.ceil(10 * rarityMultiplier);
@@ -3183,10 +3174,6 @@
                      <div class="enhancement-slot" data-slot="accessory">
                         <h3>장신구</h3>
                         ${player.equipment.accessory ? createItemCardForBlacksmith(player.equipment.accessory) : '<div class="item-card empty">없음</div>'}
-                    </div>
-                     <div class="enhancement-slot" data-slot="relic">
-                        <h3>성물</h3>
-                        ${player.equipment.relic ? createItemCardForBlacksmith(player.equipment.relic) : '<div class="item-card empty">없음</div>'}
                     </div>
                 </div>
                 <div id="enhancement-details">
@@ -3219,10 +3206,6 @@
                     <div class="enhancement-slot" data-slot="accessory">
                         <h3>장신구</h3>
                         ${player.equipment.accessory ? createItemCardForBlacksmith(player.equipment.accessory) : '<div class="item-card empty">없음</div>'}
-                    </div>
-                    <div class="enhancement-slot" data-slot="relic">
-                        <h3>성물</h3>
-                        ${player.equipment.relic ? createItemCardForBlacksmith(player.equipment.relic) : '<div class="item-card empty">없음</div>'}
                     </div>
                 </div>
                 <div id="enhancement-details">
@@ -3659,7 +3642,7 @@
         };
 
         const summary = getSummary();
-        const typeNames = { weapon: '무기', armor: '방어구', accessory: '장신구', relic: '성물' };
+        const typeNames = { weapon: '무기', armor: '방어구', accessory: '장신구' };
 
         return `
             <div class="batch-disenchant-container">
@@ -4236,7 +4219,7 @@
 
         player.gold -= totalCost;
         
-        const gachaPool = ITEM_DATABASE.filter(i => (i.type === 'weapon' || i.type === 'armor' || i.type === 'accessory' || i.type === 'relic'));
+        const gachaPool = ITEM_DATABASE.filter(i => (i.type === 'weapon' || i.type === 'armor' || i.type === 'accessory'));
         const results = [];
         const rarityWeights = {
             'enhancementStones': 19.9, 'uncommon': 40, 'rare': 37,
@@ -4314,13 +4297,13 @@
             monsterData = bossList[bossIndex];
         }
 
-        const levelModifier = Math.pow(1.08, survivalWave - 1);
+        const levelModifier = Math.pow(1.07, survivalWave - 1); // 스케일링 소폭 하향
 
         monster = {
             name: (survivalWave % 10 === 0 ? `👑 ` : '') + monsterData.name,
             emoji: monsterData.emoji,
-            maxHp: Math.floor(monsterData.baseHp * levelModifier * 1.2),
-            hp: Math.floor(monsterData.baseHp * levelModifier * 1.2),
+            maxHp: Math.floor(monsterData.baseHp * levelModifier * 1.1), // HP 스케일링 소폭 하향
+            hp: Math.floor(monsterData.baseHp * levelModifier * 1.1),
             attackPower: Math.floor(monsterData.baseAttack * levelModifier),
             defense: 0,
             statusEffects: [],
@@ -4496,6 +4479,18 @@
 
         try {
             const gameState = JSON.parse(savedData);
+            
+            // Backwards compatibility for removing relics
+            if (gameState.player && gameState.player.equipment && gameState.player.equipment.relic) {
+                delete gameState.player.equipment.relic;
+            }
+            if (gameState.player && gameState.player.inventory) {
+                gameState.player.inventory = gameState.player.inventory.filter(item => item.type !== 'relic');
+            }
+            if (gameState.batchDisenchantFilters && gameState.batchDisenchantFilters.types && gameState.batchDisenchantFilters.types.relic) {
+                delete gameState.batchDisenchantFilters.types.relic;
+            }
+
             player = gameState.player;
             monster = gameState.monster;
             messageLog = gameState.messageLog;
@@ -4515,14 +4510,13 @@
             // Backwards compatibility for new features
             if (!player.inventory) player.inventory = [];
             if (player.enchantmentDust === undefined) player.enchantmentDust = 0;
-            if (player.equipment.relic === undefined) player.equipment.relic = null;
             if (player.rebirthUpgrades.item_drop_rate === undefined) {
                 player.rebirthUpgrades.item_drop_rate = 0;
                 player.rebirthUpgrades.stone_gain = 0;
                 player.rebirthUpgrades.rare_item_chance = 0;
             }
-            if (!batchDisenchantFilters.rarities) { // Older save data structure
-                batchDisenchantFilters = { rarities: batchDisenchantFilters, types: { weapon: false, armor: false, accessory: false, relic: false } };
+             if (!batchDisenchantFilters || !batchDisenchantFilters.rarities) {
+                batchDisenchantFilters = { rarities: { common: false, uncommon: false, rare: false }, types: { weapon: false, armor: false, accessory: false } };
             }
 
 
